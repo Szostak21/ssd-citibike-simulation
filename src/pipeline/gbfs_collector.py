@@ -1,8 +1,10 @@
 import csv
 import time
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import polars as pl
 import requests
 
 from common.config import GBFS_STATION_INFO_URL, GBFS_STATION_STATUS_URL, GBFS_STATUS_DIR
@@ -13,6 +15,18 @@ FIELDS = [
     "ts", "last_reported", "station_id", "num_bikes_available", "num_ebikes_available",
     "num_bikes_disabled", "num_docks_available", "num_docks_disabled", "is_renting", "is_returning",
 ]
+SCHEMA = {
+    "ts": pl.Int64,
+    "last_reported": pl.Int64,
+    "station_id": pl.String,
+    "num_bikes_available": pl.Int32,
+    "num_ebikes_available": pl.Int32,
+    "num_bikes_disabled": pl.Int32,
+    "num_docks_available": pl.Int32,
+    "num_docks_disabled": pl.Int32,
+    "is_renting": pl.Int8,
+    "is_returning": pl.Int8,
+}
 
 
 def area_stations():
@@ -21,22 +35,47 @@ def area_stations():
     return {s["station_id"]: s["short_name"] for s, m in zip(st, mask) if m}
 
 
-def poll_once(mapping):
-    data = requests.get(GBFS_STATION_STATUS_URL, timeout=60).json()
+def parse_status(data: dict, mapping: dict[str, str]) -> pl.DataFrame:
     ts = int(data["last_updated"])
     rows = [
-        [ts, s.get("last_reported", 0), mapping[s["station_id"]]] + [s.get(f, 0) for f in FIELDS[3:]]
+        [ts, int(s.get("last_reported", 0)), mapping[s["station_id"]]] + [int(s.get(f, 0)) for f in FIELDS[3:]]
         for s in data["data"]["stations"]
         if s["station_id"] in mapping
     ]
-    path = GBFS_STATUS_DIR / f"{datetime.fromtimestamp(ts, NY).date().isoformat()}.csv"
+    return pl.DataFrame(rows, schema=SCHEMA, orient="row")
+
+
+def snapshot_time(df: pl.DataFrame) -> datetime:
+    return datetime.fromtimestamp(int(df["ts"][0]), NY)
+
+
+def write_parquet_snapshot(df: pl.DataFrame, out_dir: Path) -> Path:
+    t = snapshot_time(df)
+    path = Path(out_dir) / t.date().isoformat() / f"{t:%H%M%S}.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.write_parquet(path, compression="zstd")
+    return path
+
+
+def fetch_status(mapping):
+    return parse_status(requests.get(GBFS_STATION_STATUS_URL, timeout=60).json(), mapping)
+
+
+def harvest_once(out_dir: Path) -> tuple[Path, int]:
+    df = fetch_status(area_stations())
+    return write_parquet_snapshot(df, out_dir), df.height
+
+
+def poll_once(mapping):
+    df = fetch_status(mapping)
+    path = GBFS_STATUS_DIR / f"{snapshot_time(df).date().isoformat()}.csv"
     new = not path.exists()
     with path.open("a", newline="") as f:
         w = csv.writer(f)
         if new:
             w.writerow(FIELDS)
-        w.writerows(rows)
-    return path, len(rows)
+        w.writerows(df.rows())
+    return path, df.height
 
 
 def run(interval_s=300):

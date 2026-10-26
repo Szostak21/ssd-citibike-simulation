@@ -7,13 +7,30 @@ NY = "America/New_York"
 MIN_GBFS_DAYS = 7
 
 
+def scan_gbfs_status(gbfs_dir=GBFS_STATUS_DIR):
+    csvs = sorted(gbfs_dir.glob("*.csv"))
+    parquets = sorted(gbfs_dir.glob("**/*.parquet"))
+    frames = []
+    if csvs:
+        frames.append(pl.scan_csv([str(f) for f in csvs], schema_overrides={"station_id": pl.String}))
+    if parquets:
+        frames.append(pl.scan_parquet([str(f) for f in parquets]))
+    if not frames:
+        return None
+    cols = [
+        pl.col("ts").cast(pl.Int64),
+        pl.col("station_id").cast(pl.String),
+        pl.col("num_bikes_available").cast(pl.Int32),
+    ]
+    return pl.concat([f.select(cols) for f in frames]).unique(["ts", "station_id"])
+
+
 def exposure_from_gbfs(station_ids, gbfs_dir=GBFS_STATUS_DIR):
-    files = sorted(gbfs_dir.glob("*.csv"))
-    if not files:
+    raw = scan_gbfs_status(gbfs_dir)
+    if raw is None:
         return None
     st = (
-        pl.scan_csv([str(f) for f in files], schema_overrides={"station_id": pl.String})
-        .select(
+        raw.select(
             "station_id",
             pl.from_epoch("ts", time_unit="s").dt.replace_time_zone("UTC").dt.convert_time_zone(NY).alias("t"),
             (pl.col("num_bikes_available") > 0).alias("available"),
