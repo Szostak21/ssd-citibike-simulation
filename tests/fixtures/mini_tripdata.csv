@@ -1,0 +1,106 @@
+ride_id,rideable_type,started_at,ended_at,start_station_name,start_station_id,end_station_name,end_station_id,start_lat,start_lng,end_lat,end_lng,member_casual
+R000,classic_bike,2026-09-02 08:10:00.000,2026-09-02 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R001,classic_bike,2026-09-03 08:10:00.000,2026-09-03 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R002,classic_bike,2026-09-04 08:10:00.000,2026-09-04 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R003,classic_bike,2026-09-05 08:10:00.000,2026-09-05 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R004,classic_bike,2026-09-06 08:10:00.000,2026-09-06 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R005,classic_bike,2026-09-07 08:10:00.000,2026-09-07 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R006,classic_bike,2026-09-08 08:10:00.000,2026-09-08 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R007,classic_bike,2026-09-09 08:10:00.000,2026-09-09 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R008,classic_bike,2026-09-10 08:10:00.000,2026-09-10 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R009,classic_bike,2026-09-11 08:10:00.000,2026-09-11 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R010,classic_bike,2026-09-12 08:10:00.000,2026-09-12 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R011,classic_bike,2026-09-13 08:10:00.000,2026-09-13 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R012,classic_bike,2026-09-14 08:10:00.000,2026-09-14 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R013,classic_bike,2026-09-15 08:10:00.000,2026-09-15 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R014,classic_bike,2026-09-16 08:10:00.000,2026-09-16 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R015,classic_bike,2026-09-17 08:10:00.000,2026-09-17 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R016,classic_bike,2026-09-18 08:10:00.000,2026-09-18 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R017,classic_bike,2026-09-19 08:10:00.000,2026-09-19 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R018,classic_bike,2026-09-02 08:10:00.000,2026-09-02 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R019,classic_bike,2026-09-03 08:10:00.000,2026-09-03 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R020,classic_bike,2026-09-04 08:10:00.000,2026-09-04 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R021,classic_bike,2026-09-05 08:10:00.000,2026-09-05 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R022,classic_bike,2026-09-06 08:10:00.000,2026-09-06 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R023,classic_bike,2026-09-07 08:10:00.000,2026-09-07 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R024,classic_bike,2026-09-08 08:10:00.000,2026-09-08 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R025,classic_bike,2026-09-09 08:10:00.000,2026-09-09 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R026,classic_bike,2026-09-10 08:10:00.000,2026-09-10 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R027,classic_bike,2026-09-11 08:10:00.000,2026-09-11 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R028,classic_bike,2026-09-12 08:10:00.000,2026-09-12 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R029,classic_bike,2026-09-13 08:10:00.000,2026-09-13 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R030,classic_bike,2026-09-14 08:10:00.000,2026-09-14 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.1,40.706,-74.011,40.712,-74.010,member
+R031,classic_bike,2026-09-15 08:10:00.000,2026-09-15 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R032,classic_bike,2026-09-16 08:10:00.000,2026-09-16 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R033,classic_bike,2026-09-17 08:10:00.000,2026-09-17 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+R034,classic_bike,2026-09-18 08:10:00.000,2026-09-18 08:22:00.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+S000,electric_bike,2026-09-07 17:30:00.000,2026-09-07 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S001,electric_bike,2026-09-07 17:30:00.000,2026-09-07 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S002,electric_bike,2026-09-07 17:30:00.000,2026-09-07 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S003,electric_bike,2026-09-07 17:30:00.000,2026-09-07 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S004,electric_bike,2026-09-07 17:30:00.000,2026-09-07 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S005,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S006,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S007,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S008,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S009,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S010,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S011,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S012,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S013,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S014,electric_bike,2026-09-25 17:30:00.000,2026-09-25 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S015,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S016,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S017,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S018,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S019,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S020,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S021,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S022,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S023,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S024,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S025,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S026,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S027,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S028,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S029,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S030,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S031,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S032,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S033,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+S034,electric_bike,2026-09-10 17:30:00.000,2026-09-10 17:45:00.000,Vesey St & Church St,5002.10,Bleecker St & Broadway,5003.05,40.712,-74.010,40.726,-73.995,casual
+E000,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E001,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E002,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E003,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E004,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E005,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E006,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E007,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E008,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E009,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E010,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E011,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E012,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E013,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E014,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E015,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E016,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E017,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E018,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E019,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E020,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E021,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E022,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E023,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E024,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E025,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E026,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E027,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E028,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+E029,classic_bike,2026-09-08 09:00:00.000,2026-09-08 09:20:00.000,Bleecker St & Broadway,5003.05,DUMBO Brooklyn,9999.01,40.726,-73.995,40.703,-73.988,member
+BAD_SHORT_SAME,classic_bike,2026-09-08 10:00:00.000,2026-09-08 10:00:30.000,Wall St & Broad St,5001.01,Wall St & Broad St,5001.01,40.706,-74.011,40.706,-74.011,member
+OK_SHORT_DIFF,electric_bike,2026-09-08 10:00:00.000,2026-09-08 10:00:45.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+BAD_LONG,classic_bike,2026-09-08 10:00:00.000,2026-09-08 15:00:01.000,Wall St & Broad St,5001.01,Vesey St & Church St,5002.10,40.706,-74.011,40.712,-74.010,member
+BAD_OUT_OUT,classic_bike,2026-09-08 10:00:00.000,2026-09-08 10:15:00.000,DUMBO Brooklyn,9999.01,DUMBO Brooklyn,9999.01,40.703,-73.988,40.703,-73.988,member
+OK_EXT_IN,classic_bike,2026-09-08 11:00:00.000,2026-09-08 11:18:00.000,DUMBO Brooklyn,9999.01,Wall St & Broad St,5001.01,40.703,-73.988,40.706,-74.011,member

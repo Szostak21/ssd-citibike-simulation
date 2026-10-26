@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "Station": {
+      "additionalProperties": false,
+      "properties": {
+        "idx": {
+          "title": "Idx",
+          "type": "integer"
+        },
+        "station_id": {
+          "title": "Station Id",
+          "type": "string"
+        },
+        "gbfs_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Gbfs Id"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "capacity": {
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "capacity_source": {
+          "enum": [
+            "gbfs",
+            "imputed"
+          ],
+          "title": "Capacity Source",
+          "type": "string"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "neighbors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Neighbors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "idx",
+        "station_id",
+        "gbfs_id",
+        "name",
+        "lat",
+        "lon",
+        "capacity",
+        "capacity_source",
+        "aliases",
+        "neighbors"
+      ],
+      "title": "Station",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "source_month": {
+      "title": "Source Month",
+      "type": "string"
+    },
+    "stations": {
+      "items": {
+        "$ref": "#/$defs/Station"
+      },
+      "title": "Stations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source_month",
+    "stations"
+  ],
+  "title": "StationsFile",
+  "type": "object"
+}

@@ -1,0 +1,38 @@
+{
+  "data": {
+    "stations": [
+      {
+        "station_id": "u1",
+        "short_name": "5001.01",
+        "name": "Wall St & Broad St",
+        "lat": 40.706,
+        "lon": -74.011,
+        "capacity": 35
+      },
+      {
+        "station_id": "u2",
+        "short_name": "5002.10",
+        "name": "Vesey St & Church St",
+        "lat": 40.712,
+        "lon": -74.01,
+        "capacity": 40
+      },
+      {
+        "station_id": "u3",
+        "short_name": "5003.05",
+        "name": "Bleecker St & Broadway",
+        "lat": 40.726,
+        "lon": -73.995,
+        "capacity": 28
+      },
+      {
+        "station_id": "u4",
+        "short_name": "9999.01",
+        "name": "DUMBO Brooklyn",
+        "lat": 40.703,
+        "lon": -73.988,
+        "capacity": 25
+      }
+    ]
+  }
+}
