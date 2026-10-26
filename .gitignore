@@ -9,6 +9,8 @@ __pycache__/
 .idea/
 .vscode/
 
+*.log
+gbfs.log
 data/raw/*
 !data/raw/gbfs_status/
 data/raw/gbfs_status/*
