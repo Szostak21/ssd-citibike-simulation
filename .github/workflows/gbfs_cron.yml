@@ -1,0 +1,59 @@
+name: GBFS harvest
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gbfs-harvest
+  cancel-in-progress: false
+
+env:
+  DATA_BRANCH: data-gbfs
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --no-dev
+
+      - name: Fetch snapshot
+        id: snap
+        run: |
+          out=$(uv run python scripts/harvest_gbfs.py --out "$RUNNER_TEMP/snap")
+          echo "$out"
+          echo "summary=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare data branch worktree
+        run: |
+          if git ls-remote --exit-code --heads origin "$DATA_BRANCH" > /dev/null; then
+            git fetch --depth 1 origin "$DATA_BRANCH"
+            git worktree add -B "$DATA_BRANCH" store FETCH_HEAD
+          else
+            git worktree add --orphan -b "$DATA_BRANCH" store
+          fi
+
+      - name: Commit and push
+        working-directory: store
+        env:
+          SUMMARY: ${{ steps.snap.outputs.summary }}
+        run: |
+          mkdir -p gbfs_status
+          cp -R "$RUNNER_TEMP/snap/." gbfs_status/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gbfs_status
+          snap=$(cd "$RUNNER_TEMP/snap" && find . -name '*.parquet' | head -1 | sed 's|^\./||; s|\.parquet$||')
+          git commit -m "gbfs: ${snap} (${SUMMARY%% *} stations)"
+          for i in 1 2 3; do
+            git push origin "HEAD:$DATA_BRANCH" && exit 0
+            git pull --rebase origin "$DATA_BRANCH"
+          done
+          exit 1
