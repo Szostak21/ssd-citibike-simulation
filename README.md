@@ -2,7 +2,7 @@
 
 ## Zbieranie danych GBFS (GitHub Actions)
 
-Workflow `.github/workflows/gbfs_cron.yml` uruchamia się co 15 minut (oraz ręcznie przez *Run workflow*),
+Workflow `.github/workflows/gbfs_cron.yml` uruchamia się co 10 minut (minuty :03, :13, ..., poza szczytem obciążenia GitHuba; oraz ręcznie przez *Run workflow*),
 pobiera `station_status.json` dla stacji dolnego Manhattanu i commituje jeden plik Parquet
 do osieroconego brancha `data-gbfs`:
 
