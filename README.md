@@ -1,8 +1,8 @@
 # ssd-citibike-simulation
 
-## Zbieranie danych GBFS (GitHub Actions)
+## Zbieranie danych GBFS (GitHub Actions + Scheduler cron-job.org)
 
-Workflow `.github/workflows/gbfs_cron.yml` uruchamia się co 5 minut (oraz ręcznie przez *Run workflow*),
+Workflow `.github/workflows/gbfs_cron.yml` uruchamia się co 15 minut (wyzwalany niezawodnie przez webhook API z serwisu `cron-job.org` via `workflow_dispatch` oraz zapasowo przez wewnętrzny GitHub `schedule`),
 pobiera `station_status.json` dla stacji dolnego Manhattanu i commituje jeden plik Parquet
 do osieroconego brancha `data-gbfs`:
 
@@ -10,7 +10,7 @@ do osieroconego brancha `data-gbfs`:
 gbfs_status/YYYY-MM-DD/HHMMSS.parquet   # data i czas wg America/New_York
 ```
 
-Harmonogram (`schedule`) działa tylko z domyślnego brancha (`main`).
+Harmonogram webhooka API celuje w `main`. Zewnętrzny scheduler eliminuje problem pomijania i opóźniania zadań przez wewnętrzny mechanizm schedule na bezpłatnych kontach GitHuba.
 
 Pobranie zebranych danych lokalnie (do `data/raw/gbfs_status/`):
 
