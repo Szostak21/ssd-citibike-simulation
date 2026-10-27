@@ -2,7 +2,7 @@ name: GBFS harvest
 
 on:
   schedule:
-    - cron: "3-59/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
