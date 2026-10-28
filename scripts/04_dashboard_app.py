@@ -50,7 +50,6 @@ from common.contracts import validate_snapshots, validate_stations  # noqa: E402
 
 st.set_page_config(
     page_title="Citi Bike NYC · Odtwarzacz symulacji DES — dolny Manhattan",
-    page_icon="🚲",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -126,29 +125,50 @@ html,body,.stApp,[data-testid="stSidebar"],[data-testid="stMarkdownContainer"]{f
 [data-testid="stSidebar"]{background:linear-gradient(180deg,rgba(14,18,34,0.97),rgba(7,9,18,0.99));border-right:1px solid var(--border);}
 [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"]{background:var(--glass);border-radius:14px;}
 .sb-brand{display:flex;align-items:center;gap:10px;font-size:1.05rem;color:var(--txt);margin:2px 0 14px 0;}
-.sb-brand .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:18px;
+.sb-brand .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+ font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;letter-spacing:-.04em;color:#fff;
  background:linear-gradient(135deg,rgba(61,220,255,.25),rgba(155,92,255,.25));border:1px solid var(--border);}
 .sb-brand small{display:block;color:var(--muted);font-size:.72rem;font-weight:500;letter-spacing:.04em}
 .sb-sec{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 2px;}
 .side-title{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--txt);font-size:.9rem;margin-bottom:2px}
 .side-title i{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
 
-.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:14px;
+.hero{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;
  animation:fadein .7s ease both;}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.hero h1{font-size:2.05rem;font-weight:800;letter-spacing:-0.025em;margin:0;padding:0;line-height:1.15;
+.hero h1{font-size:1.85rem;font-weight:800;letter-spacing:-0.025em;margin:0;padding:0;line-height:1.2;
  background:linear-gradient(90deg,#ffffff 0%,#9fe8ff 35%,#b99bff 65%,#ffffff 100%);background-size:200% auto;
  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 9s linear infinite;}
 @keyframes shine{to{background-position:200% center}}
-.hero p{color:var(--muted);margin:4px 0 0 0;font-size:.92rem}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:.74rem;font-weight:600;
- color:#cfd8ff;background:rgba(255,255,255,0.045);border:1px solid var(--border);white-space:nowrap}
+.hero p{color:var(--muted);margin:3px 0 0 0;font-size:.88rem}
+.chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:.72rem;font-weight:600;
+ color:#cfd8ff;background:rgba(255,255,255,0.04);border:1px solid var(--border);white-space:nowrap;letter-spacing:.01em}
 .chip b{color:#fff}
-.live-dot,.pause-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chip-status.live{background:rgba(46,229,157,0.08);border-color:rgba(46,229,157,0.3);color:#2ee59d}
+.chip-status.paused{background:rgba(255,255,255,0.035);border-color:rgba(255,255,255,0.1);color:var(--muted)}
+.chip-src{color:var(--cyan);border-color:rgba(61,220,255,0.22)}
+.live-dot,.pause-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .live-dot{background:var(--green);animation:pulse 1.6s infinite}
 .pause-dot{background:#6b7393}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,229,157,.7)}70%{box-shadow:0 0 0 9px rgba(46,229,157,0)}100%{box-shadow:0 0 0 0 rgba(46,229,157,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,229,157,.7)}70%{box-shadow:0 0 0 8px rgba(46,229,157,0)}100%{box-shadow:0 0 0 0 rgba(46,229,157,0)}}
+
+[data-testid="stVerticalBlockBorderWrapper"]{background:var(--glass);border:1px solid var(--border);
+ border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.player-hud{display:flex;flex-direction:column;justify-content:center;padding:2px 0 2px 4px}
+.player-hud .hud-time{font-family:'JetBrains Mono',monospace;font-size:2.05rem;font-weight:700;color:#fff;
+ line-height:1.05;letter-spacing:.02em;text-shadow:0 0 20px rgba(61,220,255,.3)}
+.player-hud .hud-sub{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.68rem;font-weight:700;
+ text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.player-hud .hud-phase{color:var(--cyan)}
+.player-hud .hud-dot{color:var(--border)}
+.player-hud .hud-pct{color:var(--muted);font-weight:600}
+
+.slider-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:.74rem}
+.slider-meta .lbl{font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#cfd8ff}
+.slider-meta .cur{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:700;color:var(--cyan);margin-left:6px}
+.slider-meta .rng{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.02em}
+div[data-testid="stSlider"],div[data-testid="stSelectSlider"]{padding-top:0 !important;margin-top:0 !important}
 
 .glass{background:var(--glass);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
 .clock{padding:10px 16px 12px 16px;position:relative;overflow:hidden}
@@ -202,11 +222,14 @@ div[data-testid="stDeckGlJsonChart"]{border-radius:18px;overflow:hidden;border:1
 .feed .badge{padding:2px 8px;border-radius:999px;font-weight:700;font-size:.68rem;color:#05070d}
 .feed .empty{color:var(--muted);font-size:.8rem;padding:10px 4px}
 
-.stButton>button{border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:1.02rem;
- transition:all .15s ease;min-height:2.6rem}
-.stButton>button:hover{border-color:rgba(61,220,255,.6);background:rgba(61,220,255,.08);transform:translateY(-1px)}
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#1fb6e0,#7b4dff);border:none;color:#fff;
- box-shadow:0 6px 22px rgba(61,160,255,.35)}
+.stButton>button{border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);
+ transition:all .15s ease;min-height:2.5rem;color:#e6ecff !important}
+.stButton>button p{color:#e6ecff !important;font-family:'JetBrains Mono',monospace,sans-serif !important;
+ font-weight:700 !important;font-size:.95rem !important;letter-spacing:-.5px}
+.stButton>button:hover{border-color:rgba(61,220,255,.6);background:rgba(61,220,255,.09);transform:translateY(-1px)}
+.stButton>button[kind="primary"]{background:linear-gradient(135deg,#1fb6e0,#7b4dff);border:none;color:#fff !important;
+ box-shadow:0 6px 20px rgba(61,160,255,.35)}
+.stButton>button[kind="primary"] p{color:#fff !important}
 .stTabs [data-baseweb="tab-list"]{gap:6px}
 .stTabs [data-baseweb="tab"]{border-radius:10px 10px 0 0;padding:6px 14px}
 .foot{color:#5d6688;font-size:.72rem;text-align:center;margin-top:18px}
@@ -252,21 +275,21 @@ def hex_rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def day_phase(m: int) -> tuple[str, str]:
+def day_phase(m: int) -> str:
     h = m / 60
     if h < 5.5:
-        return "Noc", "🌙"
+        return "Noc"
     if h < 7:
-        return "Świt", "🌅"
+        return "Świt"
     if h < 10:
-        return "Poranny szczyt", "🚴"
+        return "Poranny szczyt"
     if h < 16:
-        return "Południe", "☀️"
+        return "Południe"
     if h < 19.5:
-        return "Popołudniowy szczyt", "🚴"
+        return "Popołudniowy szczyt"
     if h < 22:
-        return "Wieczór", "🌆"
-    return "Noc", "🌙"
+        return "Wieczór"
+    return "Noc"
 
 
 def scen_label(run: dict) -> str:
@@ -494,7 +517,7 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
         "lon": sdf["lon"], "lat": sdf["lat"], "elev": elev + 4.0, "cap_elev": cap_elev,
         "color": station_colors(ratio, lo, hi).tolist(),
         "title": names,
-        "line1": [f"🚲 {b:.0f} / {c:.0f} rowerów · wolne doki: {c - b:.0f}" for b, c in zip(bikes, cap)],
+        "line1": [f"{b:.0f} / {c:.0f} rowerów · wolne doki: {c - b:.0f}" for b, c in zip(bikes, cap)],
         "line2": [f"Zapełnienie {r:.0%} · odrzucenia w oknie {fr:.0f}/{fd:.0f} · narastająco {cu:.0f}"
                   for r, fr, fd, cu in zip(ratio, win_r, win_d, cum)],
     })
@@ -544,7 +567,7 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
                     "r": (o["radius"] * 1.6 + 26 * np.sqrt(tot)) * (0.85 + 0.35 * pulse),
                     "line": [[*C_EMPTY, 230] if rd else [*C_FULL, 230] for rd in rent_dom],
                     "fill": [[*C_EMPTY, 40] if rd else [*C_FULL, 40] for rd in rent_dom],
-                    "title": [f"⚠️ {names[k]}" for k in idx],
+                    "title": [f"Stacja {names[k]}" for k in idx],
                     "line1": [f"Odrzucone wypożyczenia: {win_r[k]:.0f} · zwroty: {win_d[k]:.0f}" for k in idx],
                     "line2": ["w ostatnim oknie 15-min"] * len(idx),
                 }),
@@ -602,7 +625,7 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
                 "lon": vs["lon"], "lat": vs["lat"], "z": beacon + 70, "beacon": beacon,
                 "color": [*col, 240], "halo": [*col, 55], "ring": [*col, 210], "r": 55 + 50 * phase,
                 "label": f"V{vs['van_id'] + 1} · {vs['load']}/{cap_v}",
-                "title": f"🚚 Furgonetka V{vs['van_id'] + 1} — {VAN_STATUS_PL.get(vs['status'], vs['status'])}",
+                "title": f"Furgonetka V{vs['van_id'] + 1} — {VAN_STATUS_PL.get(vs['status'], vs['status'])}",
                 "line1": f"Ładunek: {vs['load']} / {cap_v} rowerów",
                 "line2": line2,
             })
@@ -636,6 +659,8 @@ def hero_html(sides: list[dict], playing: bool) -> str:
     meta = r0["meta"]
     n = len(r0["stations"])
     src = {"engine": "silnik DES", "mock": "dane mock"}[r0["source"]]
+    day_type_map = {"weekday": "dzień powszedni", "weekend": "weekend"}
+    day_str = day_type_map.get(meta.get("day_type", ""), meta.get("day_type", ""))
     state = "<span class='live-dot'></span>LIVE" if playing else "<span class='pause-dot'></span>PAUZA"
     vs = " vs ".join(f"<b style='color:{accent_of(sd['run'])}'>{sd['run']['meta']['scenario']}</b>" for sd in sides)
     return _html(f"""
@@ -643,31 +668,34 @@ def hero_html(sides: list[dict], playing: bool) -> str:
       <div><h1>Citi Bike NYC · Dolny Manhattan</h1>
         <p>Odtwarzacz symulacji zdarzeń dyskretnych — relokacja rowerów w czasie rzeczywistym</p></div>
       <div class="chips">
-        <span class="chip">{state}</span>
+        <span class="chip chip-status {'live' if playing else 'paused'}">{state}</span>
         <span class="chip">Scenariusz {vs}</span>
-        <span class="chip">🗺️ <b>{n}</b> stacji</span>
-        <span class="chip">📅 {meta['day_type']}</span>
-        <span class="chip">⏱️ Δt = {meta['step_s'] // 60} min</span>
-        <span class="chip">🧬 {src}</span>
+        <span class="chip"><b>{n}</b> stacji</span>
+        <span class="chip">{day_str}</span>
+        <span class="chip">Δt = {meta['step_s'] // 60} min</span>
+        <span class="chip chip-src">{src}</span>
       </div>
     </div>""")
 
 
-def clock_html(m: int, playing: bool) -> str:
-    label, icon = day_phase(m)
-    state = "<span class='live-dot'></span>live" if playing else "<span class='pause-dot'></span>pauza"
+def clock_html(m: int, playing: bool) -> str:  # noqa: ARG001
+    label = day_phase(m)
+    pct = (m / DAY_MIN) * 100
     return _html(f"""
-    <div class="clock glass">
-      <div class="clock-top"><span>{icon} {label}</span><span class="state">{state}</span></div>
-      <div class="time">{fmt_hhmm(m)}</div>
-      <div class="bar"><div style="width:{m / DAY_MIN * 100:.2f}%"></div></div>
+    <div class="player-hud">
+      <div class="hud-time">{fmt_hhmm(m)}</div>
+      <div class="hud-sub">
+        <span class="hud-phase">{label}</span>
+        <span class="hud-dot">·</span>
+        <span class="hud-pct">{pct:.0f}% doby</span>
+      </div>
     </div>""")
 
 
 def scen_head_html(run: dict) -> str:
     m = run["meta"]
     info = SCENARIOS[m["scenario"]]
-    fleet = f"🚚 {m['n_vans']} × K={m['van_capacity']}" if m["n_vans"] else "🚫 bez furgonetek"
+    fleet = f"Flota: {m['n_vans']} × K={m['van_capacity']}" if m["n_vans"] else "Bez furgonetek"
     src = "mock" if run["source"] == "mock" else "silnik DES"
     return _html(f"""
     <div class="scen-head glass" style="--accent:{info['accent']}">
@@ -871,7 +899,7 @@ def _pick_run(side: str, title: str, accent: str, cands: list[dict], default_sce
 def sidebar() -> dict:
     sb = st.sidebar
     sb.markdown(_html("""
-    <div class="sb-brand"><div class="logo">🚲</div>
+    <div class="sb-brand"><div class="logo">CB</div>
       <div><b>CitiBike DES Player</b><small>UI &amp; 3D Map · Streamlit + PyDeck</small></div></div>"""),
         unsafe_allow_html=True)
     runs = discover_runs()
@@ -882,10 +910,10 @@ def sidebar() -> dict:
     sb.markdown("<div class='sb-sec'>Przebiegi</div>", unsafe_allow_html=True)
     sources = [s for s in ("engine", "mock") if any(r["source"] == s for r in runs)]
     source = sb.radio("Źródło danych", sources, horizontal=True, key="source",
-                      format_func={"engine": "⚙️ Silnik DES", "mock": "🧪 Mock"}.get)
+                      format_func={"engine": "Silnik DES", "mock": "Dane mock"}.get)
     cands = [r for r in runs if r["source"] == source]
     mode = sb.radio("Tryb widoku", ["split", "single"], horizontal=True, key="view_mode",
-                    format_func={"split": "🪟 Split-Screen", "single": "🗺️ Pojedyncza"}.get)
+                      format_func={"split": "Split-Screen", "single": "Pojedyncza"}.get)
     if mode == "split":
         picks = [_pick_run("L", "Lewa mapa", "#FFB547", cands, "A", source),
                  _pick_run("R", "Prawa mapa", "#3DDCFF", cands, "C", source)]
@@ -977,20 +1005,29 @@ def player(cfg: dict, runs: list[dict]) -> None:
             ss.t_min = int(nxt)
 
     # ── Pasek czasu ──
-    c_clock, c_btn, c_slider = st.columns([1.15, 1.75, 5.2], vertical_alignment="center", gap="medium")
-    with c_clock:
-        st.markdown(clock_html(ss.t_min, ss.playing), unsafe_allow_html=True)
-    with c_btn:
-        b = st.columns([1, 1, 1.25, 1, 1], gap="small")
-        kw = _stretch(st.button)
-        b[0].button("⏮", key="b_start", help="Początek zakresu", on_click=_seek_to, args=(lo,), **kw)
-        b[1].button("⏪", key="b_back", help="−15 min", on_click=_seek_by, args=(-15, lo, hi), **kw)
-        b[2].button("⏸" if ss.playing else "▶", key="b_play", help="Odtwarzaj / pauza", type="primary",
-                    on_click=_toggle_play, args=(lo, hi), **kw)
-        b[3].button("⏩", key="b_fwd", help="+15 min", on_click=_seek_by, args=(15, lo, hi), **kw)
-        b[4].button("⏭", key="b_end", help="Koniec zakresu", on_click=_seek_to, args=(hi,), **kw)
-    with c_slider:
-        st.select_slider("Czas symulacji", options=list(range(lo, hi + 1)), format_func=fmt_hhmm, key="t_min")
+    with st.container(border=True):
+        c_clock, c_btn, c_slider = st.columns([1.5, 2.3, 5.7], vertical_alignment="center", gap="medium")
+        with c_clock:
+            st.markdown(clock_html(ss.t_min, ss.playing), unsafe_allow_html=True)
+        with c_btn:
+            b = st.columns([1, 1, 1.25, 1, 1], gap="small")
+            kw = _stretch(st.button)
+            b[0].button("|◄", key="b_start", help="Początek zakresu", on_click=_seek_to, args=(lo,), **kw)
+            b[1].button("◄◄", key="b_back", help="−15 min", on_click=_seek_by, args=(-15, lo, hi), **kw)
+            b[2].button("❚❚" if ss.playing else "▶", key="b_play", help="Odtwarzaj / pauza", type="primary",
+                        on_click=_toggle_play, args=(lo, hi), **kw)
+            b[3].button("►►", key="b_fwd", help="+15 min", on_click=_seek_by, args=(15, lo, hi), **kw)
+            b[4].button("►|", key="b_end", help="Koniec zakresu", on_click=_seek_to, args=(hi,), **kw)
+        with c_slider:
+            slider_kw = _stretch(st.select_slider)
+            if "label_visibility" in _params(st.select_slider):
+                slider_kw["label_visibility"] = "collapsed"
+            st.markdown(_html(f"""
+            <div class="slider-meta">
+              <span class="lbl">Czas symulacji <span class="cur">{fmt_hhmm(ss.t_min)}</span></span>
+              <span class="rng">zakres: {fmt_hhmm(lo)} — {fmt_hhmm(hi)}</span>
+            </div>"""), unsafe_allow_html=True)
+            st.select_slider("Czas symulacji", options=list(range(lo, hi + 1)), format_func=fmt_hhmm, key="t_min", **slider_kw)
 
     t = ss.t_min * 60.0
     sides = []
@@ -1017,7 +1054,7 @@ def player(cfg: dict, runs: list[dict]) -> None:
     st.markdown(legend_html(o["thr"]), unsafe_allow_html=True)
 
     # ── Analityka ──
-    tab1, tab2, tab3 = st.tabs(["📈 Przebieg doby", "🚨 Stacje krytyczne", "🚚 Dziennik furgonetek"])
+    tab1, tab2, tab3 = st.tabs(["Przebieg doby", "Stacje krytyczne", "Dziennik furgonetek"])
     pconf = {"displayModeBar": False}
     with tab1:
         g1, g2 = st.columns(2, gap="medium")
