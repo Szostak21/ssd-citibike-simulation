@@ -2,14 +2,14 @@
 
 Funkcje:
 - mapa 3D w Dark Mode (CARTO Dark Matter) z kolumnami stacji (wysokość = rowery, kolor = zapełnienie),
-- widok Split-Screen (np. Scenariusz A vs C w tej samej sekundzie symulacji) lub pojedyncza mapa,
+- widok Split-Screen (np. Scenariusz A vs B w tej samej sekundzie symulacji) lub pojedyncza mapa,
 - płynna animacja furgonetek po siatce ulic Manhattanu (TripsLayer + ArcLayer + beacony 3D),
 - suwak czasu z odtwarzaczem (play / pauza / skoki ±15 min), interpolacja między klatkami 15-min,
 - karty KPI, wykres narastającego nieobsłużonego popytu, ranking stacji krytycznych, dziennik vanów.
 
 Dane wejściowe zgodnie z `CONTRACTS.md` (sekcja 4 `snapshots_24h`):
 - `data/outputs/snapshots/{scenario}_n{vans}_s{seed}.json` (silnik DES), a w razie ich braku
-- `data/mock/mock_snapshots_24h_{A|C}.json` (mocki).
+- `data/mock/mock_snapshots_24h_{A|B}.json` (mocki).
 
 Uruchomienie (z katalogu głównego repozytorium):
     uv run streamlit run scripts/04_dashboard_app.py
@@ -58,7 +58,7 @@ st.set_page_config(
 # Stałe
 # ──────────────────────────────────────────────────────────────────────────────
 SNAP_DIR = OUTPUTS / "snapshots"
-RUN_RE = re.compile(r"^(?P<scenario>[ABC])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
+RUN_RE = re.compile(r"^(?P<scenario>[AB])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
 DAY_MIN = 24 * 60
 SERVICE_GUESS_S = 300  # czas obsługi stacji po ostatnim odcinku (jak w make_mocks.SERVICE_S)
 MAX_SERVICE_S = 1800  # dłuższa przerwa między odcinkami = postój (stan bierzemy z klatek)
@@ -70,7 +70,6 @@ VIEW_CENTER = (40.7350, -73.9905)
 SCENARIOS = {
     "A": {"name": "Bazowy", "desc": "Brak furgonetek w dzień, nocny reset stacji", "accent": "#FFB547"},
     "B": {"name": "Reaktywny", "desc": "Alarm przy przekroczeniu progów zapełnienia", "accent": "#FF6FB5"},
-    "C": {"name": "Predykcyjny", "desc": "Prognoza bilansu stacji w horyzoncie H", "accent": "#3DDCFF"},
 }
 
 C_EMPTY = (255, 69, 96)
@@ -311,13 +310,15 @@ def discover_runs() -> list[dict]:
     if SNAP_DIR.exists():
         for p in sorted(SNAP_DIR.glob("*.json")):
             m = RUN_RE.match(p.name)
-            if m:
+            if m and m["scenario"] in SCENARIOS:
                 runs.append({"source": "engine", "scenario": m["scenario"], "n_vans": int(m["n"]),
                              "seed": int(m["seed"]), "path": str(p)})
     for p in sorted(MOCK.glob("mock_snapshots_24h_*.json")):
         try:
             meta = json.loads(p.read_text(encoding="utf-8"))["meta"]
         except (OSError, KeyError, ValueError):
+            continue
+        if meta.get("scenario") not in SCENARIOS:
             continue
         runs.append({"source": "mock", "scenario": meta["scenario"], "n_vans": int(meta["n_vans"]),
                      "seed": int(meta["seed"]), "path": str(p)})
@@ -530,7 +531,7 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
                 "HeatmapLayer", id="heat",
                 data=pd.DataFrame({"lon": sdf["lon"].to_numpy()[m], "lat": sdf["lat"].to_numpy()[m], "w": cum[m]}),
                 get_position="[lon, lat]", get_weight="w", radius_pixels=46, intensity=1.1, threshold=0.04,
-                color_range=HEAT_RANGE, aggregation="SUM", opacity=0.55,
+                color_range=HEAT_RANGE, aggregation=JsString("SUM"), opacity=0.55,
             ))
     if o["boundary"]:
         ring = [[lon, lat] for lon, lat in MANHATTAN_POLYGON] + [list(MANHATTAN_POLYGON[0])]
@@ -571,7 +572,7 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
                     "line1": [f"Odrzucone wypożyczenia: {win_r[k]:.0f} · zwroty: {win_d[k]:.0f}" for k in idx],
                     "line2": ["w ostatnim oknie 15-min"] * len(idx),
                 }),
-                get_position="[lon, lat]", get_radius="r", radius_units="meters", stroked=True, filled=True,
+                get_position="[lon, lat]", get_radius="r", radius_units=JsString("meters"), stroked=True, filled=True,
                 get_fill_color="fill", get_line_color="line", line_width_min_pixels=2, pickable=True,
             ))
 
@@ -633,14 +634,14 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
             vdf = pd.DataFrame(rows)
             layers += [
                 pdk.Layer("ScatterplotLayer", id="van_halo", data=vdf, get_position="[lon, lat]", get_radius="r",
-                          radius_units="meters", filled=True, stroked=True, get_fill_color="halo",
+                          radius_units=JsString("meters"), filled=True, stroked=True, get_fill_color="halo",
                           get_line_color="ring", line_width_min_pixels=1.5),
                 pdk.Layer("ColumnLayer", id="van_beacon", data=vdf, get_position="[lon, lat]", get_elevation="beacon",
                           elevation_scale=1, radius=16, disk_resolution=10, extruded=True, get_fill_color="color",
                           pickable=True, auto_highlight=True),
                 pdk.Layer("TextLayer", id="van_label", data=vdf, get_position="[lon, lat, z]", get_text="label",
                           get_size=13, get_color=[255, 255, 255, 240], get_text_anchor=JsString("middle"),
-                          get_alignment_baseline=JsString("bottom"), font_family="'JetBrains Mono', monospace",
+                          get_alignment_baseline=JsString("bottom"), font_family=JsString("'JetBrains Mono', monospace"),
                           font_weight=700, background=True, get_background_color=[8, 12, 24, 215],
                           background_padding=[6, 3, 6, 3]),
             ]
@@ -912,13 +913,13 @@ def sidebar() -> dict:
     source = sb.radio("Źródło danych", sources, horizontal=True, key="source",
                       format_func={"engine": "Silnik DES", "mock": "Dane mock"}.get)
     cands = [r for r in runs if r["source"] == source]
-    mode = sb.radio("Tryb widoku", ["split", "single"], horizontal=True, key="view_mode",
-                      format_func={"split": "Split-Screen", "single": "Pojedyncza"}.get)
+    mode = sb.radio("Tryb widoku", ["single", "split"], horizontal=True, key="view_mode",
+                      format_func={"single": "Pojedyncza", "split": "Split-Screen"}.get)
     if mode == "split":
         picks = [_pick_run("L", "Lewa mapa", "#FFB547", cands, "A", source),
-                 _pick_run("R", "Prawa mapa", "#3DDCFF", cands, "C", source)]
+                 _pick_run("R", "Prawa mapa", "#FF6FB5", cands, "B", source)]
     else:
-        picks = [_pick_run("S", "Przebieg", "#3DDCFF", cands, "C", source)]
+        picks = [_pick_run("S", "Przebieg", "#FFB547", cands, "A", source)]
 
     sb.markdown("<div class='sb-sec'>Odtwarzanie</div>", unsafe_allow_html=True)
     rng = sb.select_slider("Zakres doby", options=list(range(0, DAY_MIN + 1, 15)), value=(360, 1320),
