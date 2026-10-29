@@ -4,7 +4,7 @@ from common.config import DAY_TYPES, EXT, GBFS_STATUS_DIR, MIN_EXPOSURE, SLOTS, 
 from pipeline.trips import calendar_days, day_type_expr
 
 NY = "America/New_York"
-MIN_GBFS_DAYS = 7
+MIN_GBFS_DAYS = 2
 
 
 def scan_gbfs_status(gbfs_dir=GBFS_STATUS_DIR):

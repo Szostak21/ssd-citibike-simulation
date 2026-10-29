@@ -134,7 +134,7 @@ def test_exposure_mixed_sources(tmp_path):
     assert (noon["exposure_frac"] == 0.5).all()
 
 
-def test_exposure_needs_seven_days(tmp_path):
+def test_exposure_needs_min_days(tmp_path):
     df = parse_status(_status(_ts(2026, 10, 1, 16, 0), 5), {"uuid-a": "5470.10"})
     write_parquet_snapshot(df, tmp_path)
     assert exposure_from_gbfs(["5470.10"], tmp_path) is None
