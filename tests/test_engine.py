@@ -9,6 +9,7 @@ from engine.demand_gen import EXT_IDX, build_demand_table, generate_customer_str
 from engine.des import SimulationEngine, upsert_metrics
 from pipeline.weather import weather_multiplier
 from strategies.base import ScenarioA
+from strategies.reactive import ScenarioB, van_speed_mps
 
 
 def _toy_stations():
@@ -202,3 +203,72 @@ def test_weather_multiplier():
     assert weather_multiplier("dry") == 1.0
     m = weather_multiplier("rain")
     assert 0.5 <= m <= 0.95
+
+
+def test_scenario_b_reactive_relocation(tmp_path: Path):
+    assert van_speed_mps(8 * 3600, "weekday") < van_speed_mps(13 * 3600, "weekday")
+    assert van_speed_mps(8 * 3600, "weekend") == van_speed_mps(13 * 3600, "weekday")
+
+    stations = [
+        Station(
+            idx=0,
+            station_id="S0",
+            gbfs_id="u0",
+            name="Residential Origin",
+            lat=40.7200,
+            lon=-74.0000,
+            capacity=20,
+            capacity_source="gbfs",
+            aliases=[],
+            neighbors=[],
+        ),
+        Station(
+            idx=1,
+            station_id="S1",
+            gbfs_id="u1",
+            name="Business Hub",
+            lat=40.7350,
+            lon=-73.9900,
+            capacity=20,
+            capacity_source="gbfs",
+            aliases=[],
+            neighbors=[],
+        ),
+    ]
+    ids = ["S0", "S1"]
+
+    # Asymetryczny strumień: z S0 jadą na S1 przez cały dzień (S0 pustoszeje <10%, S1 przepełnia się >90%)
+    n_events = 160
+    ts = np.linspace(6 * 3600 + 60, 20 * 3600, n_events).astype(np.int32)
+    stream = {
+        "t": ts,
+        "origin": np.zeros(n_events, dtype=np.int32),
+        "dest": np.ones(n_events, dtype=np.int32),
+        "duration": np.full(n_events, 400, dtype=np.int32),
+        "u_walk": np.full(n_events, 0.9, dtype=np.float64),
+    }
+
+    res_a = SimulationEngine(stations, strategy=ScenarioA(), seed=7).run(stream)
+    strat_b = ScenarioB(n_vans=1, van_capacity=20, thr_low=0.1, thr_high=0.9)
+    res_b = SimulationEngine(stations, strategy=strat_b, seed=7).run(stream)
+
+    assert res_b.run_row["bikes_moved"] > 0
+    assert res_b.run_row["van_km"] > 0.0
+    assert len(res_b.snapshots["van_legs"]) >= 2
+    actions = {leg["action"] for leg in res_b.snapshots["van_legs"]}
+    assert actions == {"pickup", "dropoff"}
+
+    # Scenariusz B powinien znacząco zmniejszyć liczbę odrzuceń względem Scenariusza A
+    fails_a = res_a.run_row["fail_rent"] + res_a.run_row["fail_return"]
+    fails_b = res_b.run_row["fail_rent"] + res_b.run_row["fail_return"]
+    assert fails_b < fails_a
+    assert res_b.run_row[" rentals_ok" if " rentals_ok" in res_b.run_row else "rentals_ok"] > res_a.run_row["rentals_ok"]
+
+    from common.contracts import write_json
+
+    snap_file = tmp_path / "B_n1_s7.json"
+    write_json(res_b.snapshots, snap_file)
+    validate_snapshots(snap_file, ids)
+
+    runs_df, hourly_df = upsert_metrics(res_b, tmp_path)
+    validate_metrics(runs_df, hourly_df)
