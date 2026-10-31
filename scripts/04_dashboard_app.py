@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from common.config import (  # noqa: E402
+from common.config import (
     GRID_ANGLE_DEG,
     MANHATTAN_POLYGON,
     MOCK,
@@ -46,7 +46,7 @@ from common.config import (  # noqa: E402
     PROCESSED,
     STATIONS_JSON,
 )
-from common.contracts import validate_snapshots, validate_stations  # noqa: E402
+from common.contracts import validate_snapshots, validate_stations
 
 st.set_page_config(
     page_title="Citi Bike NYC · Odtwarzacz symulacji DES — dolny Manhattan",
@@ -261,12 +261,12 @@ def _stretch(fn) -> dict:
 
 
 def fmt_hhmm(m) -> str:
-    h, mm = divmod(int(round(m)), 60)
+    h, mm = divmod(round(m), 60)
     return f"{h:02d}:{mm:02d}"
 
 
 def fmt_int(v) -> str:
-    return f"{int(round(float(v))):,}".replace(",", "\u2009")
+    return f"{round(float(v)):,}".replace(",", "\u2009")
 
 
 def hex_rgba(hex_color: str, alpha: float) -> str:
@@ -354,7 +354,7 @@ def _grid_route(lat1, lon1, lat2, lon2, t0, t1):
 
 
 @st.cache_data(show_spinner="Wczytywanie przebiegu symulacji…", max_entries=16)
-def load_run(path: str, source: str, mtime: float) -> dict:  # noqa: ARG001 (mtime = klucz cache)
+def load_run(path: str, source: str, mtime: float) -> dict:
     snap = validate_snapshots(path)
     meta = snap.meta
     st_path = _stations_path(meta.stations_file, source)
@@ -680,7 +680,7 @@ def hero_html(sides: list[dict], playing: bool) -> str:
     </div>""")
 
 
-def clock_html(m: int, playing: bool) -> str:  # noqa: ARG001
+def clock_html(m: int, playing: bool) -> str:
     label = day_phase(m)
     pct = (m / DAY_MIN) * 100
     return _html(f"""
@@ -816,13 +816,17 @@ def van_feed_html(run: dict, t: float, limit: int = 8) -> str:
 def _style_fig(fig: go.Figure, title: str, rng: tuple[int, int]) -> go.Figure:
     lo_h, hi_h = rng[0] / 60, rng[1] / 60
     step = 1 if hi_h - lo_h <= 8 else 2
-    ticks = list(range(int(math.floor(lo_h)), int(math.ceil(hi_h)) + 1, step))
+    ticks = list(range(math.floor(lo_h), math.ceil(hi_h) + 1, step))
     fig.update_layout(
-        height=300, margin=dict(l=8, r=8, t=46, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", color="#c9d3f5", size=12),
-        title=dict(text=title, font=dict(size=14, color="#e6ecff"), x=0.01, y=0.97),
-        legend=dict(orientation="h", y=1.13, x=1, xanchor="right", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
-        hovermode="x unified", hoverlabel=dict(bgcolor="#0d1224", bordercolor="rgba(255,255,255,0.15)"),
+        height=300,
+        margin={"l": 8, "r": 8, "t": 46, "b": 8},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"family": "Inter, sans-serif", "color": "#c9d3f5", "size": 12},
+        title={"text": title, "font": {"size": 14, "color": "#e6ecff"}, "x": 0.01, "y": 0.97},
+        legend={"orientation": "h", "y": 1.13, "x": 1, "xanchor": "right", "bgcolor": "rgba(0,0,0,0)", "font": {"size": 11}},
+        hovermode="x unified",
+        hoverlabel={"bgcolor": "#0d1224", "bordercolor": "rgba(255,255,255,0.15)"},
     )
     fig.update_xaxes(range=[lo_h, hi_h], tickvals=ticks, ticktext=[f"{h:02d}:00" for h in ticks],
                      gridcolor="rgba(255,255,255,0.05)", zeroline=False, showline=False)
@@ -837,13 +841,13 @@ def chart_unserved(sides: list[dict], t: float, rng: tuple[int, int]) -> go.Figu
         k = run["kpi"]
         y = k["fail_rent_cum"] + k["fail_return_cum"]
         fig.add_trace(go.Scatter(
-            x=k["t"] / 3600, y=y, mode="lines", name=scen_label(run), line=dict(color=acc, width=2.6, shape="spline"),
+            x=k["t"] / 3600, y=y, mode="lines", name=scen_label(run), line={"color": acc, "width": 2.6, "shape": "spline"},
             fill="tozeroy", fillcolor=hex_rgba(acc, 0.08), hovertemplate="%{y:,.0f}",
         ))
         now = sd["s"]["kpi"]["fail_rent_cum"] + sd["s"]["kpi"]["fail_return_cum"]
         fig.add_trace(go.Scatter(x=[t / 3600], y=[now], mode="markers", showlegend=False, hoverinfo="skip",
-                                 marker=dict(size=11, color=acc, line=dict(color="#fff", width=2))))
-    fig.add_vline(x=t / 3600, line=dict(color="rgba(255,255,255,0.35)", width=1, dash="dot"))
+                                 marker={"size": 11, "color": acc, "line": {"color": "#fff", "width": 2}}))
+    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
     return _style_fig(fig, "Narastający nieobsłużony popyt (odrzucone wypożyczenia + zwroty)", rng)
 
 
@@ -855,10 +859,10 @@ def chart_critical(sides: list[dict], t: float, thr: tuple, rng: tuple[int, int]
         x = run["t"] / 3600
         s = run["meta"]["scenario"]
         fig.add_trace(go.Scatter(x=x, y=(ratio < thr[0]).sum(1), mode="lines", name=f"{s} · puste",
-                                 line=dict(color=acc, width=2.4, shape="spline")))
+                                 line={"color": acc, "width": 2.4, "shape": "spline"}))
         fig.add_trace(go.Scatter(x=x, y=(ratio > thr[1]).sum(1), mode="lines", name=f"{s} · pełne",
-                                 line=dict(color=acc, width=2, dash="dot", shape="spline")))
-    fig.add_vline(x=t / 3600, line=dict(color="rgba(255,255,255,0.35)", width=1, dash="dot"))
+                                 line={"color": acc, "width": 2, "dash": "dot", "shape": "spline"}))
+    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
     return _style_fig(fig, f"Liczba stacji krytycznych (pusta < {thr[0]:.0%}, pełna > {thr[1]:.0%})", rng)
 
 
