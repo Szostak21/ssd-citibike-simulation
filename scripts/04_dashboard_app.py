@@ -2,14 +2,14 @@
 
 Funkcje:
 - mapa 3D w Dark Mode (CARTO Dark Matter) z kolumnami stacji (wysokość = rowery, kolor = zapełnienie),
-- widok Split-Screen (np. Scenariusz A vs B w tej samej sekundzie symulacji) lub pojedyncza mapa,
+- widok Split-Screen (np. Scenariusz A vs C w tej samej sekundzie symulacji) lub pojedyncza mapa,
 - płynna animacja furgonetek po siatce ulic Manhattanu (TripsLayer + ArcLayer + beacony 3D),
 - suwak czasu z odtwarzaczem (play / pauza / skoki ±15 min), interpolacja między klatkami 15-min,
 - karty KPI, wykres narastającego nieobsłużonego popytu, ranking stacji krytycznych, dziennik vanów.
 
 Dane wejściowe zgodnie z `CONTRACTS.md` (sekcja 4 `snapshots_24h`):
 - `data/outputs/snapshots/{scenario}_n{vans}_s{seed}.json` (silnik DES), a w razie ich braku
-- `data/mock/mock_snapshots_24h_{A|B}.json` (mocki).
+- `data/mock/mock_snapshots_24h_{A|B|C}.json` (mocki).
 
 Uruchomienie (z katalogu głównego repozytorium):
     uv run streamlit run scripts/04_dashboard_app.py
@@ -58,7 +58,7 @@ st.set_page_config(
 # Stałe
 # ──────────────────────────────────────────────────────────────────────────────
 SNAP_DIR = OUTPUTS / "snapshots"
-RUN_RE = re.compile(r"^(?P<scenario>[AB])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
+RUN_RE = re.compile(r"^(?P<scenario>[ABC])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
 DAY_MIN = 24 * 60
 SERVICE_GUESS_S = 300  # czas obsługi stacji po ostatnim odcinku (jak w make_mocks.SERVICE_S)
 MAX_SERVICE_S = 1800  # dłuższa przerwa między odcinkami = postój (stan bierzemy z klatek)
@@ -70,6 +70,7 @@ VIEW_CENTER = (40.7350, -73.9905)
 SCENARIOS = {
     "A": {"name": "Bazowy", "desc": "Brak furgonetek w dzień, nocny reset stacji", "accent": "#FFB547"},
     "B": {"name": "Reaktywny", "desc": "Alarm przy przekroczeniu progów zapełnienia", "accent": "#FF6FB5"},
+    "C": {"name": "Predykcyjny", "desc": "Prognoza bilansu stacji w horyzoncie H", "accent": "#3DDCFF"},
 }
 
 C_EMPTY = (255, 69, 96)

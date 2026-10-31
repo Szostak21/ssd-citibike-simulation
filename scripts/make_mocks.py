@@ -116,7 +116,7 @@ def mock_snapshots(stations, scenario, n_vans, seed=1, stations_file="mock_stati
     st = stations["stations"]
     cap = np.array([s["capacity"] for s in st])
     lat, lon = np.array([s["lat"] for s in st]), np.array([s["lon"] for s in st])
-    amp = station_amp(lat, lon) * (0.45 if scenario == "C" else 1.0) * rng.uniform(0.6, 1.4, len(st))
+    amp = station_amp(lat, lon) * (0.45 if scenario == "C" else (0.7 if scenario == "B" else 1.0)) * rng.uniform(0.6, 1.4, len(st))
     pos = {s["station_id"]: (s["lat"], s["lon"]) for s in st}
     legs = van_plan(rng, st, n_vans, station_amp(lat, lon)) if n_vans else []
     noise = np.zeros(len(st))
@@ -202,7 +202,7 @@ def main():
     stations = mock_stations(rng)
     contracts.write_json(stations, MOCK / "mock_stations.json")
     ids = [s.station_id for s in contracts.validate_stations(MOCK / "mock_stations.json").stations]
-    for scenario, n_vans in (("A", 0), ("C", 4)):
+    for scenario, n_vans in (("A", 0), ("B", 4), ("C", 4)):
         path = MOCK / f"mock_snapshots_24h_{scenario}.json"
         contracts.write_json(mock_snapshots(stations, scenario, n_vans), path)
         contracts.validate_snapshots(path, ids)

@@ -1,0 +1,127 @@
+{
+  "n_stations": 383,
+  "total_capacity": 22401,
+  "mean_capacity": 58.5,
+  "median_capacity": 56,
+  "gbfs_capacity_stations": 372,
+  "mean_neighbors_500m": 11.8,
+  "trips_clean_total": 2685269,
+  "trips_calib_total": 2183859,
+  "trips_valid_total": 501410,
+  "trips_calib_weekday": 1642239,
+  "trips_calib_weekend": 541620,
+  "ext_origin_share_pct": 12.46,
+  "ext_dest_share_pct": 12.69,
+  "duration_median_s": 631.0,
+  "duration_mean_s": 832.1,
+  "duration_log_mu": 6.437,
+  "duration_log_sigma": 0.7637,
+  "od_rows": 5069952,
+  "rain_multiplier": 0.55,
+  "mean_exposure_frac_weekday": 0.9038,
+  "min_exposure_frac_weekday": 0.2,
+  "censored_slots_share_pct": 18.93,
+  "weekday_expected_demand_raw": 90220.2,
+  "weekday_expected_demand_corrected": 107859.5,
+  "censoring_uplift_pct": 19.55,
+  "top_am_deficit_stations": [
+    {
+      "station_id": "5886.13",
+      "name": "E 20 St & FDR Dr",
+      "capacity": 56.0,
+      "am_net": -245.9375,
+      "pm_net": -172.75
+    },
+    {
+      "station_id": "5997.10",
+      "name": "W 12 St & Hudson St",
+      "capacity": 45.0,
+      "am_net": -164.625,
+      "pm_net": -202.25
+    },
+    {
+      "station_id": "6115.06",
+      "name": "Hudson St & W 13 St",
+      "capacity": 56.0,
+      "am_net": -140.0,
+      "pm_net": -408.0
+    },
+    {
+      "station_id": "6575.03",
+      "name": "E 51 St & 2 Ave",
+      "capacity": 56.0,
+      "am_net": -110.75,
+      "pm_net": -185.625
+    },
+    {
+      "station_id": "5847.10",
+      "name": "Greenwich St & Christopher St",
+      "capacity": 74.0,
+      "am_net": -109.41666666666666,
+      "pm_net": -25.667708333333337
+    }
+  ],
+  "top_am_surplus_stations": [
+    {
+      "station_id": "6492.08",
+      "name": "9 Ave & W 33 St",
+      "capacity": 94.0,
+      "am_net": 129.02083333333331,
+      "pm_net": -148.375
+    },
+    {
+      "station_id": "6584.12",
+      "name": "E 47 St & Park Ave",
+      "capacity": 81.0,
+      "am_net": 105.5625,
+      "pm_net": -149.36979166666666
+    },
+    {
+      "station_id": "5470.10",
+      "name": "Greenwich St & Hubert St",
+      "capacity": 35.0,
+      "am_net": 93.40625,
+      "pm_net": -102.41666666666666
+    },
+    {
+      "station_id": "6173.08",
+      "name": "Broadway & W 25 St",
+      "capacity": 109.0,
+      "am_net": 85.125,
+      "pm_net": -80.390625
+    },
+    {
+      "station_id": "6432.11",
+      "name": "E 40 St & Park Ave",
+      "capacity": 123.0,
+      "am_net": 82.325,
+      "pm_net": -124.8125
+    }
+  ],
+  "scenario_a_baseline": {
+    "run_id": "A_n0_s1",
+    "scenario": "A",
+    "seed": 1,
+    "n_vans": 0,
+    "van_capacity": 25,
+    "thr_low": 0.1,
+    "thr_high": 0.9,
+    "horizon_min": 0,
+    "weather": "dry",
+    "day_type": "weekday",
+    "demand_total": 107919,
+    "rentals_ok": 94894,
+    "fail_rent": 18336,
+    "fail_return": 10312,
+    "walk_redirect": 7227,
+    "empty_station_min": 50438.45,
+    "full_station_min": 41714.37,
+    "van_km": 0.0,
+    "bikes_moved": 0
+  },
+  "figures": [
+    "reports/figures/fig1_spatial_asymmetry.png",
+    "reports/figures/fig2_diurnal_asymmetry.png",
+    "reports/figures/fig3_calibration_diagnostics.png"
+  ]
+}
