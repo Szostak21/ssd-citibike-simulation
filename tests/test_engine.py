@@ -9,6 +9,7 @@ from engine.demand_gen import EXT_IDX, build_demand_table, generate_customer_str
 from engine.des import SimulationEngine, upsert_metrics
 from pipeline.weather import weather_multiplier
 from strategies.base import ScenarioA
+from strategies.predictive import ScenarioC
 from strategies.reactive import ScenarioB, van_speed_mps
 
 
@@ -272,3 +273,91 @@ def test_scenario_b_reactive_relocation(tmp_path: Path):
 
     runs_df, hourly_df = upsert_metrics(res_b, tmp_path)
     validate_metrics(runs_df, hourly_df)
+
+
+def test_scenario_c_predictive_relocation(tmp_path: Path):
+    stations = [
+        Station(
+            idx=0,
+            station_id="S0",
+            gbfs_id="u0",
+            name="Residential Origin",
+            lat=40.7200,
+            lon=-74.0000,
+            capacity=20,
+            capacity_source="gbfs",
+            aliases=[],
+            neighbors=[],
+        ),
+        Station(
+            idx=1,
+            station_id="S1",
+            gbfs_id="u1",
+            name="Business Hub",
+            lat=40.7350,
+            lon=-73.9900,
+            capacity=20,
+            capacity_source="gbfs",
+            aliases=[],
+            neighbors=[],
+        ),
+    ]
+    ids = ["S0", "S1"]
+
+    # Gwałtowna poranna fala wypożyczeń z S0 do S1 startująca o 06:45 (slot 27..35)
+    lam_out = np.zeros((2, SLOTS), dtype=np.float64)
+    lam_in = np.zeros((2, SLOTS), dtype=np.float64)
+    lam_out[0, 24:40] = 28.0  # wysoki wypływ z S0 od 06:00
+    lam_in[1, 24:40] = 28.0  # wysoki napływ do S1 od 06:00
+
+    n_events = 140
+    ts = np.linspace(6 * 3600 + 45 * 60, 12 * 3600, n_events).astype(np.int32)
+    stream = {
+        "t": ts,
+        "origin": np.zeros(n_events, dtype=np.int32),
+        "dest": np.ones(n_events, dtype=np.int32),
+        "duration": np.full(n_events, 420, dtype=np.int32),
+        "u_walk": np.full(n_events, 0.9, dtype=np.float64),
+    }
+
+    strat_b = ScenarioB(n_vans=1, van_capacity=20, thr_low=0.1, thr_high=0.9, lam_out=lam_out, lam_in=lam_in)
+    res_b = SimulationEngine(stations, strategy=strat_b, seed=11).run(stream)
+
+    strat_c = ScenarioC(
+        n_vans=1,
+        van_capacity=20,
+        thr_low=0.1,
+        thr_high=0.9,
+        horizon_min=60,
+        lam_out=lam_out,
+        lam_in=lam_in,
+    )
+    res_c = SimulationEngine(stations, strategy=strat_c, seed=11).run(stream)
+
+    assert res_c.run_row["scenario"] == "C"
+    assert res_c.run_row["horizon_min"] == 60
+    assert res_c.run_row["bikes_moved"] > 0
+    assert res_c.run_row["van_km"] > 0.0
+    assert len(res_c.snapshots["van_legs"]) >= 2
+
+    # W Scenariuszu C pierwszy kurs startuje wyprzedzająco o 06:00 (21600 s), zanim pojawi się alarm o 06:45+
+    first_leg_c = res_c.snapshots["van_legs"][0]
+    first_leg_b = res_b.snapshots["van_legs"][0]
+    assert first_leg_c["t_start"] == 6 * 3600
+    assert first_leg_c["t_start"] < first_leg_b["t_start"]
+
+    # Dzięki wyprzedzającej relokacji Scenariusz C ma mniej odrzuceń niż Scenariusz B
+    fails_b = res_b.run_row["fail_rent"] + res_b.run_row["fail_return"]
+    fails_c = res_c.run_row["fail_rent"] + res_c.run_row["fail_return"]
+    assert fails_c < fails_b
+    assert res_c.run_row["rentals_ok"] >= res_b.run_row["rentals_ok"]
+
+    from common.contracts import write_json
+
+    snap_file = tmp_path / "C_n1_s11.json"
+    write_json(res_c.snapshots, snap_file)
+    validate_snapshots(snap_file, ids)
+
+    runs_df, hourly_df = upsert_metrics(res_c, tmp_path)
+    validate_metrics(runs_df, hourly_df)
+
