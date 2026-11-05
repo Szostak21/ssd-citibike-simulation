@@ -361,3 +361,63 @@ def test_scenario_c_predictive_relocation(tmp_path: Path):
     runs_df, hourly_df = upsert_metrics(res_c, tmp_path)
     validate_metrics(runs_df, hourly_df)
 
+
+def test_scenario_c_forecast_horizons_and_edge_cases():
+    stations = _toy_stations()
+    lam_out = np.full((2, SLOTS), 12.0, dtype=np.float64)
+    lam_in = np.full((2, SLOTS), 6.0, dtype=np.float64)
+
+    strat_c = ScenarioC(n_vans=2, van_capacity=15, horizon_min=90, lam_out=lam_out, lam_in=lam_in)
+    eng = SimulationEngine(stations, strategy=strat_c, seed=5)
+    strat_c.initialize(eng)
+
+    # Sprawdzenie okna prognozy w środku doby (90 min = 1.5h -> exp_out = 18.0, exp_in = 9.0, net = -9.0)
+    exp_out, exp_in, net_delta = strat_c._forecast_window(eng, 8 * 3600)
+    assert np.allclose(exp_out, 18.0)
+    assert np.allclose(exp_in, 9.0)
+    assert np.allclose(net_delta, -9.0)
+
+    # Sprawdzenie obcięcia prognozy na końcu doby (t = DAY_S)
+    z_out, z_in, z_net = strat_c._forecast_window(eng, 86400)
+    assert np.all(z_out == 0.0) and np.all(z_in == 0.0) and np.all(z_net == 0.0)
+
+
+def test_van_shift_hours_and_return_retries_and_upsert(tmp_path: Path):
+    stations = _toy_stations()
+    strat_b = ScenarioB(n_vans=2, van_capacity=10)
+    # Brak ruchu przed 06:00 i po 22:00: strumień tylko o 02:00 w nocy i 23:00 wieczorem
+    stream = {
+        "t": np.array([2 * 3600, 23 * 3600], dtype=np.int32),
+        "origin": np.array([0, 0], dtype=np.int32),
+        "dest": np.array([1, 1], dtype=np.int32),
+        "duration": np.array([300, 300], dtype=np.int32),
+        "u_walk": np.array([0.9, 0.9], dtype=np.float64),
+    }
+    eng = SimulationEngine(stations, strategy=strat_b, seed=3)
+    eng.bikes[0] = 0  # alarm pustej stacji o 00:00
+    res = eng.run(stream)
+
+    # Przed 06:00 (kiedy t=0..5:45, indeksy 0..23) vany mają status "off", o 22:00+ wracają do "off"
+    assert all(v["status"] == "off" for v in res.snapshots["frames"][0]["vans"])
+    assert all(v["status"] == "off" for v in res.snapshots["frames"][-1]["vans"])
+
+    # Test maksymalnej liczby przekierowań zwrotów (MAX_RETURN_RETRIES), gdy wszystkie stacje są pełne
+    eng_full = SimulationEngine(stations, strategy=ScenarioA(), seed=4, init_fill=1.0)
+    stream_ret = {
+        "t": np.array([1000], dtype=np.int32),
+        "origin": np.array([EXT_IDX], dtype=np.int32),
+        "dest": np.array([0], dtype=np.int32),
+        "duration": np.array([200], dtype=np.int32),
+        "u_walk": np.array([0.5], dtype=np.float64),
+    }
+    res_full = eng_full.run(stream_ret)
+    assert res_full.run_row["fail_return"] == 1
+    assert res_full.run_row["full_station_min"] > 0
+
+    # Test idempotentności upsert_metrics przy wielokrotnym zapisie tego samego run_id
+    upsert_metrics(res_full, tmp_path)
+    runs_df, hourly_df = upsert_metrics(res_full, tmp_path)
+    assert runs_df.height == 1
+    assert hourly_df.height == 24
+
+
