@@ -6,6 +6,7 @@ import polars as pl
 
 from common import contracts
 from common.config import (
+    HORIZON_MIN_DEFAULT,
     INIT_FILL,
     LAMBDA_PARQUET,
     OD_PARQUET,
@@ -20,6 +21,7 @@ from engine.demand_gen import build_demand_table, generate_customer_stream
 from engine.des import SimulationEngine, upsert_metrics
 from pipeline.weather import weather_multiplier
 from strategies.base import BaseStrategy, ScenarioA
+from strategies.predictive import ScenarioC
 from strategies.reactive import ScenarioB
 
 
@@ -45,6 +47,7 @@ def make_strategy(
     van_capacity: int,
     thr_low: float,
     thr_high: float,
+    horizon_min: int = HORIZON_MIN_DEFAULT,
     lam_out: np.ndarray | None = None,
     lam_in: np.ndarray | None = None,
 ) -> BaseStrategy:
@@ -59,13 +62,23 @@ def make_strategy(
             lam_out=lam_out,
             lam_in=lam_in,
         )
+    if scenario == "C":
+        return ScenarioC(
+            n_vans=n_vans,
+            van_capacity=van_capacity,
+            thr_low=thr_low,
+            thr_high=thr_high,
+            horizon_min=horizon_min,
+            lam_out=lam_out,
+            lam_in=lam_in,
+        )
     return BaseStrategy(
         scenario=scenario,
         n_vans=n_vans,
         van_capacity=van_capacity,
         thr_low=thr_low,
         thr_high=thr_high,
-        horizon_min=60 if scenario == "C" else 0,
+        horizon_min=horizon_min if scenario == "C" else 0,
     )
 
 
@@ -79,6 +92,7 @@ def run_single(
     van_capacity: int = VAN_CAPACITY_DEFAULT,
     thr_low: float = THR_LOW_DEFAULT,
     thr_high: float = THR_HIGH_DEFAULT,
+    horizon_min: int = HORIZON_MIN_DEFAULT,
 ):
     t0 = time.time()
     stations = contracts.validate_stations(STATIONS_JSON).stations
@@ -98,6 +112,7 @@ def run_single(
         van_capacity,
         thr_low,
         thr_high,
+        horizon_min=horizon_min,
         lam_out=table.lam[: len(station_ids)],
         lam_in=lam_in,
     )
@@ -143,6 +158,7 @@ def main():
     p.add_argument("--day-type", choices=["weekday", "weekend"], default="weekday")
     p.add_argument("--weather", choices=["dry", "rain"], default="dry")
     p.add_argument("--init-fill", type=float, default=INIT_FILL)
+    p.add_argument("--horizon-min", type=int, default=HORIZON_MIN_DEFAULT)
     args = p.parse_args()
     run_single(
         scenario=args.scenario,
@@ -151,6 +167,7 @@ def main():
         day_type=args.day_type,
         weather=args.weather,
         init_fill=args.init_fill,
+        horizon_min=args.horizon_min,
     )
 
 
