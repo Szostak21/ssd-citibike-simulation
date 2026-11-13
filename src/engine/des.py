@@ -7,9 +7,13 @@ import polars as pl
 from common.config import (
     BIKE_SPEED_MPS,
     DAY_S,
+    HORIZON_MIN_DEFAULT,
     INIT_FILL,
     SCHEMA_VERSION,
     STEP_S,
+    THR_HIGH_DEFAULT,
+    THR_LOW_DEFAULT,
+    VAN_CAPACITY_DEFAULT,
     WALK_PROB,
     WALK_SPEED_MPS,
 )
@@ -26,6 +30,36 @@ EV_WALK_ARRIVAL = 5
 EV_ARRIVAL = 6
 
 MAX_RETURN_RETRIES = 3
+
+
+def format_run_id(
+    scenario: str,
+    n_vans: int,
+    seed: int,
+    *,
+    van_capacity: int = VAN_CAPACITY_DEFAULT,
+    thr_low: float = THR_LOW_DEFAULT,
+    thr_high: float = THR_HIGH_DEFAULT,
+    horizon_min: int | None = None,
+    weather: str = "dry",
+    day_type: str = "weekday",
+) -> str:
+    base = f"{scenario}_n{int(n_vans)}_s{int(seed)}"
+    parts: list[str] = []
+    if day_type != "weekday":
+        parts.append(f"dt-{day_type}")
+    if weather != "dry":
+        parts.append(f"wx-{weather}")
+    if scenario in ("B", "C"):
+        if int(van_capacity) != VAN_CAPACITY_DEFAULT:
+            parts.append(f"K{int(van_capacity)}")
+        if round(float(thr_low), 4) != THR_LOW_DEFAULT or round(float(thr_high), 4) != THR_HIGH_DEFAULT:
+            lo_pct = round(float(thr_low) * 100)
+            hi_pct = round(float(thr_high) * 100)
+            parts.append(f"thr{lo_pct}-{hi_pct}")
+    if scenario == "C" and horizon_min is not None and int(horizon_min) != HORIZON_MIN_DEFAULT:
+        parts.append(f"H{int(horizon_min)}")
+    return base if not parts else f"{base}_{'_'.join(parts)}"
 
 
 @dataclass(slots=True)
@@ -45,6 +79,7 @@ class SimulationEngine:
         weather: str = "dry",
         init_fill: float = INIT_FILL,
         stations_file: str = "stations.json",
+        init_bikes: np.ndarray | None = None,
     ):
         self.stations = stations
         self.n = len(stations)
@@ -63,7 +98,10 @@ class SimulationEngine:
         self.init_fill = float(init_fill)
         self.stations_file = stations_file
 
-        self.bikes = np.clip(np.rint(self.capacity * self.init_fill).astype(np.int32), 0, self.capacity)
+        if init_bikes is not None:
+            self.bikes = np.clip(np.asarray(init_bikes, dtype=np.int32)[: self.n], 0, self.capacity)
+        else:
+            self.bikes = np.clip(np.rint(self.capacity * self.init_fill).astype(np.int32), 0, self.capacity)
         self.last_change_t = np.zeros(self.n, dtype=np.int32)
         self.empty_sec_hourly = np.zeros(24, dtype=np.float64)
         self.full_sec_hourly = np.zeros(24, dtype=np.float64)
@@ -202,7 +240,14 @@ class SimulationEngine:
                 ride_s = max(30, round(float(self.dist_m[dest, best_nb]) / BIKE_SPEED_MPS))
                 self.schedule(t + ride_s, EV_RETURN_REDIR, (best_nb, retry + 1))
 
-    def run(self, stream: dict[str, np.ndarray], extra_params: dict | None = None) -> SimResult:
+    def run(
+        self,
+        stream: dict[str, np.ndarray],
+        extra_params: dict | None = None,
+        *,
+        record_snapshots: bool = True,
+        run_id: str | None = None,
+    ) -> SimResult:
         self.strategy.initialize(self)
 
         for k in range(0, DAY_S + 1, STEP_S):
@@ -224,7 +269,11 @@ class SimulationEngine:
             t, ev_type, _, payload = heapq.heappop(self.queue)
             if ev_type == EV_SNAPSHOT:
                 self.strategy.on_tick(self, t)
-                self._record_snapshot(t)
+                if record_snapshots:
+                    self._record_snapshot(t)
+                else:
+                    self.win_fail_rent.fill(0)
+                    self.win_fail_return.fill(0)
             elif ev_type == EV_ARRIVAL:
                 o_i, d_i, dur, uw = payload
                 self._handle_arrival(t, o_i, d_i, dur, uw)
@@ -244,7 +293,17 @@ class SimulationEngine:
 
         scen = self.strategy.scenario
         n_vans = self.strategy.n_vans
-        run_id = f"{scen}_n{n_vans}_s{self.seed}"
+        resolved_run_id = run_id or format_run_id(
+            scen,
+            n_vans,
+            self.seed,
+            van_capacity=int(self.strategy.van_capacity),
+            thr_low=float(self.strategy.thr_low),
+            thr_high=float(self.strategy.thr_high),
+            horizon_min=int(self.strategy.horizon_min),
+            weather=self.weather,
+            day_type=self.day_type,
+        )
         empty_min_hourly = np.round(self.empty_sec_hourly / 60.0, 2)
         full_min_hourly = np.round(self.full_sec_hourly / 60.0, 2)
 
@@ -265,11 +324,11 @@ class SimulationEngine:
                 "params": {"weather": self.weather, "init_fill": self.init_fill, **(extra_params or {})},
             },
             "frames": self.frames,
-            "van_legs": self.strategy.van_legs,
+            "van_legs": self.strategy.van_legs if record_snapshots else [],
         }
 
         run_row = {
-            "run_id": run_id,
+            "run_id": resolved_run_id,
             "scenario": scen,
             "seed": self.seed,
             "n_vans": n_vans,
@@ -292,7 +351,7 @@ class SimulationEngine:
 
         hourly_rows = [
             {
-                "run_id": run_id,
+                "run_id": resolved_run_id,
                 "hour": hr,
                 "demand": int(self.hourly_demand[hr]),
                 "rentals_ok": int(self.hourly_rentals_ok[hr]),
@@ -307,27 +366,36 @@ class SimulationEngine:
         return SimResult(snapshots=snapshots, run_row=run_row, hourly_rows=hourly_rows)
 
 
-def upsert_metrics(result: SimResult, metrics_dir) -> tuple[pl.DataFrame, pl.DataFrame]:
+def upsert_metrics_batch(
+    results: list[SimResult],
+    metrics_dir,
+    *,
+    replace_all: bool = False,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     metrics_dir.mkdir(parents=True, exist_ok=True)
     runs_path = metrics_dir / "metrics_runs.csv"
     hourly_path = metrics_dir / "metrics_hourly.csv"
-    run_id = result.run_row["run_id"]
 
-    new_run = pl.DataFrame([result.run_row])
-    new_hourly = pl.DataFrame(result.hourly_rows)
+    new_runs = pl.DataFrame([r.run_row for r in results])
+    new_hourly = pl.DataFrame([hr for r in results for hr in r.hourly_rows])
+    new_ids = new_runs["run_id"].to_list()
 
-    if runs_path.exists():
-        old_runs = pl.read_csv(runs_path).filter(pl.col("run_id") != run_id)
-        runs_df = pl.concat([old_runs, new_run], how="diagonal_relaxed").sort("run_id")
+    if not replace_all and runs_path.exists():
+        old_runs = pl.read_csv(runs_path).filter(~pl.col("run_id").is_in(new_ids))
+        runs_df = pl.concat([old_runs, new_runs], how="diagonal_relaxed").sort("run_id")
     else:
-        runs_df = new_run
+        runs_df = new_runs.sort("run_id")
 
-    if hourly_path.exists():
-        old_hourly = pl.read_csv(hourly_path).filter(pl.col("run_id") != run_id)
+    if not replace_all and hourly_path.exists():
+        old_hourly = pl.read_csv(hourly_path).filter(~pl.col("run_id").is_in(new_ids))
         hourly_df = pl.concat([old_hourly, new_hourly], how="diagonal_relaxed").sort("run_id", "hour")
     else:
-        hourly_df = new_hourly
+        hourly_df = new_hourly.sort("run_id", "hour")
 
     runs_df.write_csv(runs_path)
     hourly_df.write_csv(hourly_path)
     return runs_df, hourly_df
+
+
+def upsert_metrics(result: SimResult, metrics_dir) -> tuple[pl.DataFrame, pl.DataFrame]:
+    return upsert_metrics_batch([result], metrics_dir)
