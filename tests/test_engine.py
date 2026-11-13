@@ -3,10 +3,10 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-from common.config import EXT, SLOTS
-from common.contracts import Station, validate_metrics, validate_snapshots
+from common.config import EXT, SCHEMA_VERSION, SLOTS, SOURCE_MONTH
+from common.contracts import Station, validate_metrics, validate_snapshots, write_json
 from engine.demand_gen import EXT_IDX, build_demand_table, generate_customer_stream
-from engine.des import SimulationEngine, upsert_metrics
+from engine.des import SimulationEngine, format_run_id, upsert_metrics, upsert_metrics_batch
 from pipeline.weather import weather_multiplier
 from strategies.base import ScenarioA
 from strategies.predictive import ScenarioC
@@ -419,5 +419,106 @@ def test_van_shift_hours_and_return_retries_and_upsert(tmp_path: Path):
     runs_df, hourly_df = upsert_metrics(res_full, tmp_path)
     assert runs_df.height == 1
     assert hourly_df.height == 24
+
+
+def test_record_snapshots_false_equivalence_and_format_run_id(tmp_path: Path):
+    assert format_run_id("A", 0, 1) == "A_n0_s1"
+    assert format_run_id("B", 4, 1) == "B_n4_s1"
+    assert format_run_id("C", 4, 1, horizon_min=60) == "C_n4_s1"
+    assert format_run_id("C", 4, 1, weather="rain") == "C_n4_s1_wx-rain"
+    assert format_run_id("B", 4, 2, van_capacity=15) == "B_n4_s2_K15"
+    assert format_run_id("C", 4, 3, horizon_min=30) == "C_n4_s3_H30"
+    assert format_run_id("B", 4, 1, thr_low=0.20, thr_high=0.80) == "B_n4_s1_thr20-80"
+
+    stations = _toy_stations()
+    ids, lam_df, od_df = _toy_tables()
+    tbl = build_demand_table(ids, lam_df, od_df, day_type="weekday")
+    stream = generate_customer_stream(tbl, seed=19)
+    lam_out = tbl.lam[: len(ids)]
+    lam_in = np.full((len(ids), SLOTS), 8.0, dtype=np.float64)
+
+    strat1 = ScenarioC(n_vans=1, van_capacity=15, horizon_min=30, lam_out=lam_out, lam_in=lam_in)
+    res_full = SimulationEngine(stations, strategy=strat1, seed=19).run(stream, record_snapshots=True)
+
+    strat2 = ScenarioC(n_vans=1, van_capacity=15, horizon_min=30, lam_out=lam_out, lam_in=lam_in)
+    res_fast = SimulationEngine(stations, strategy=strat2, seed=19).run(stream, record_snapshots=False)
+
+    assert res_full.run_row == res_fast.run_row
+    assert res_full.hourly_rows == res_fast.hourly_rows
+    assert res_fast.run_row["run_id"] == "C_n1_s19_K15_H30"
+    assert len(res_full.snapshots["frames"]) == SLOTS + 1
+    assert res_fast.snapshots["frames"] == []
+
+    runs_df, hourly_df = upsert_metrics_batch([res_full], tmp_path, replace_all=True)
+    validate_metrics(runs_df, hourly_df)
+
+
+def test_batch_experiments_crn_and_warmup(tmp_path: Path):
+    import importlib.util
+    import sys
+
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "03_batch_experiments.py"
+    spec = importlib.util.spec_from_file_location("batch_experiments", script_path)
+    assert spec is not None and spec.loader is not None
+    batch_mod = importlib.util.module_from_spec(spec)
+    sys.modules["batch_experiments"] = batch_mod
+    spec.loader.exec_module(batch_mod)
+
+    grid_all = batch_mod.build_experiment_grid("all")
+    assert len(grid_all) == 26
+
+    stations = _toy_stations()
+    ids, lam_df, od_df = _toy_tables()
+    st_path = tmp_path / "stations.json"
+    lam_path = tmp_path / "lambda_15min.parquet"
+    od_path = tmp_path / "od_matrix.parquet"
+    out_dir = tmp_path / "outputs"
+
+    write_json(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "generated_at": "2026-10-01T00:00:00Z",
+            "source_month": SOURCE_MONTH,
+            "stations": [s.model_dump() for s in stations],
+        },
+        st_path,
+    )
+    lam_df.write_parquet(lam_path)
+    od_df.write_parquet(od_path)
+
+    sub_configs = [
+        batch_mod.ExperimentConfig(scenario="A", n_vans=0, horizon_min=0),
+        batch_mod.ExperimentConfig(scenario="B", n_vans=2, horizon_min=0),
+        batch_mod.ExperimentConfig(scenario="C", n_vans=2, horizon_min=60),
+        batch_mod.ExperimentConfig(scenario="C", n_vans=2, horizon_min=60, weather="rain"),
+        batch_mod.ExperimentConfig(scenario="C", n_vans=2, horizon_min=30),
+    ]
+
+    runs_df, hourly_df, summary_df = batch_mod.run_batch_experiments(
+        seeds=[1, 2],
+        configs=sub_configs,
+        workers=1,
+        warmup_days=1,
+        save_snapshots_seed=1,
+        stations_path=st_path,
+        lambda_path=lam_path,
+        od_path=od_path,
+        outputs_dir=out_dir,
+        replace_all=True,
+        verbose=False,
+    )
+
+    validate_metrics(runs_df, hourly_df)
+    assert runs_df.height == 10
+    assert hourly_df.height == 240
+    assert summary_df.height == 5
+
+    # Weryfikacja Common Random Numbers (CRN): dla tego samego (seed, weather) demand_total jest identyczny
+    for seed_val in (1, 2):
+        sub_dry = runs_df.filter((pl.col("seed") == seed_val) & (pl.col("weather") == "dry"))
+        assert sub_dry["demand_total"].n_unique() == 1
+
+    validate_snapshots(out_dir / "snapshots" / "A_n0_s1.json", ids)
+    validate_snapshots(out_dir / "snapshots" / "C_n2_s1.json", ids)
 
 
