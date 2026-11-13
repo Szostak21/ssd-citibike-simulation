@@ -1,7 +1,7 @@
 """Interaktywny odtwarzacz przebiegów symulacji Citi Bike (dolny Manhattan) — Streamlit + PyDeck.
 
 Funkcje:
-- mapa 3D w Dark Mode (CARTO Dark Matter) z kolumnami stacji (wysokość = rowery, kolor = zapełnienie),
+- mapa 3D w Dark / Light Mode (CARTO Dark Matter / Positron) z kolumnami stacji,
 - widok Split-Screen (np. Scenariusz A vs C w tej samej sekundzie symulacji) lub pojedyncza mapa,
 - płynna animacja furgonetek po siatce ulic Manhattanu (TripsLayer + ArcLayer + beacony 3D),
 - suwak czasu z odtwarzaczem (play / pauza / skoki ±15 min), interpolacja między klatkami 15-min,
@@ -65,6 +65,7 @@ MAX_SERVICE_S = 1800  # dłuższa przerwa między odcinkami = postój (stan bier
 TRAIL_S = 900  # długość "ogona" furgonetki w TripsLayer [s symulacji]
 BEACON_M = 380  # wysokość beaconu furgonetki [m]
 CARTO_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+CARTO_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
 VIEW_CENTER = (40.7350, -73.9905)
 
 SCENARIOS = {
@@ -77,7 +78,14 @@ C_EMPTY = (255, 69, 96)
 C_FULL = (155, 92, 255)
 GRAD_X = np.array([0.0, 0.22, 0.78, 1.0])
 GRAD_RGB = np.array([[255, 184, 76], [46, 229, 157], [46, 229, 157], [88, 166, 255]], dtype=float)
-HEAT_RANGE = [[255, 214, 102], [255, 159, 67], [255, 99, 99], [235, 59, 130], [170, 60, 220], [120, 40, 200]]
+HEAT_RANGE = [
+    [255, 214, 102],
+    [255, 159, 67],
+    [255, 99, 99],
+    [235, 59, 130],
+    [170, 60, 220],
+    [120, 40, 200],
+]
 
 VAN_COLORS = {
     "pickup": (255, 170, 60),  # jedzie po rowery
@@ -86,7 +94,15 @@ VAN_COLORS = {
     "idle": (150, 160, 185),
 }
 VAN_STATUS_PL = {"driving": "w trasie", "servicing": "obsługa stacji", "idle": "postój", "off": "poza zmianą"}
-KPI_COLS = ["rentals_cum", "fail_rent_cum", "fail_return_cum", "walk_redirect_cum", "van_km_cum", "n_empty", "n_full"]
+KPI_COLS = [
+    "rentals_cum",
+    "fail_rent_cum",
+    "fail_return_cum",
+    "walk_redirect_cum",
+    "van_km_cum",
+    "n_empty",
+    "n_full",
+]
 
 TOOLTIP = {
     "html": (
@@ -105,59 +121,122 @@ TOOLTIP = {
     },
 }
 
+TOOLTIP_LIGHT = {
+    "html": (
+        "<div style='font-family:Inter,sans-serif;min-width:210px'>"
+        "<div style='font-weight:700;font-size:13px;margin-bottom:4px;color:#0f172a'>{title}</div>"
+        "<div style='font-size:12px;color:#334155'>{line1}</div>"
+        "<div style='font-size:11px;color:#64748b;margin-top:3px'>{line2}</div></div>"
+    ),
+    "style": {
+        "backgroundColor": "rgba(255,255,255,0.96)",
+        "border": "1px solid rgba(15,23,42,0.12)",
+        "borderRadius": "12px",
+        "padding": "10px 12px",
+        "boxShadow": "0 12px 32px rgba(15,23,42,.16)",
+        "color": "#0f172a",
+    },
+}
+
+
+def build_tooltip(light: bool = False) -> dict:
+    return TOOLTIP_LIGHT if light else TOOLTIP
+
+
 _ST_VER = tuple(int(x) for x in re.findall(r"\d+", st.__version__)[:2])
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Style
 # ──────────────────────────────────────────────────────────────────────────────
-CSS = """
-<style>
+_DARK_VARS = """
+:root{
+  --bg0:#05070d;--glass:rgba(255,255,255,0.035);--border:rgba(255,255,255,0.08);
+  --txt:#e6ecff;--txt-strong:#ffffff;--txt-sub:#cfd8ff;--muted:#8a94b8;--foot:#5d6688;
+  --cyan:#3DDCFF;--violet:#9B5CFF;--green:#2EE59D;--red:#FF4560;--amber:#FFB547;
+  --app-bg:
+    radial-gradient(1100px 520px at 8% -12%,rgba(61,220,255,0.10),transparent 60%),
+    radial-gradient(900px 480px at 100% -5%,rgba(155,92,255,0.12),transparent 60%),
+    radial-gradient(700px 400px at 50% 110%,rgba(46,229,157,0.05),transparent 60%),#05070d;
+  --sb-bg:linear-gradient(180deg,rgba(14,18,34,0.97),rgba(7,9,18,0.99));
+  --hero-grad:linear-gradient(90deg,#ffffff 0%,#9fe8ff 35%,#b99bff 65%,#ffffff 100%);
+  --chip-bg:rgba(255,255,255,0.04);--btn-bg:rgba(255,255,255,0.05);
+  --btn-hover-bg:rgba(61,220,255,0.10);--btn-shadow:none;
+  --input-bg:rgba(255,255,255,0.05);--input-bg-disabled:rgba(255,255,255,0.025);
+  --input-border:rgba(255,255,255,0.12);--input-border-strong:rgba(255,255,255,0.32);
+  --dropdown-bg:#0f1424;--hover-bg:rgba(61,220,255,0.14);--toggle-off-bg:rgba(255,255,255,0.20);
+  --card-shadow:0 10px 30px rgba(0,0,0,.35);
+  --deck-shadow:0 22px 60px rgba(0,0,0,.5),0 0 0 1px rgba(61,220,255,.04),inset 0 0 80px rgba(61,220,255,.03);
+  --hud-glow:0 0 20px rgba(61,220,255,.3);
+}
+"""
+
+_LIGHT_VARS = """
+:root{
+  --bg0:#f4f7fb;--glass:rgba(255,255,255,0.86);--border:rgba(15,23,42,0.10);
+  --txt:#1e293b;--txt-strong:#0f172a;--txt-sub:#334155;--muted:#64748b;--foot:#64748b;
+  --cyan:#0284c7;--violet:#7c3aed;--green:#059669;--red:#e11d48;--amber:#d97706;
+  --app-bg:
+    radial-gradient(1100px 520px at 8% -12%,rgba(2,132,199,0.09),transparent 60%),
+    radial-gradient(900px 480px at 100% -5%,rgba(124,58,237,0.08),transparent 60%),
+    radial-gradient(700px 400px at 50% 110%,rgba(5,150,105,0.05),transparent 60%),#f4f7fb;
+  --sb-bg:linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.99));
+  --hero-grad:linear-gradient(90deg,#0f172a 0%,#0284c7 38%,#7c3aed 68%,#0f172a 100%);
+  --chip-bg:rgba(15,23,42,0.045);--btn-bg:#ffffff;
+  --btn-hover-bg:#f0f9ff;--btn-shadow:0 2px 6px rgba(15,23,42,0.06);
+  --input-bg:#ffffff;--input-bg-disabled:#f1f5f9;
+  --input-border:#cbd5e1;--input-border-strong:#94a3b8;
+  --dropdown-bg:#ffffff;--hover-bg:#e2e8f0;--toggle-off-bg:#cbd5e1;
+  --card-shadow:0 8px 24px rgba(15,23,42,.07);
+  --deck-shadow:0 16px 40px rgba(15,23,42,.12),0 0 0 1px rgba(15,23,42,.06);
+  --hud-glow:none;
+}
+"""
+
+_BASE_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
-:root{--bg0:#05070d;--glass:rgba(255,255,255,0.035);--border:rgba(255,255,255,0.08);--txt:#e6ecff;--muted:#8a94b8;
---cyan:#3DDCFF;--violet:#9B5CFF;--green:#2EE59D;--red:#FF4560;--amber:#FFB547;}
-html,body,.stApp,[data-testid="stSidebar"],[data-testid="stMarkdownContainer"]{font-family:'Inter',sans-serif;}
-.stApp{background:
- radial-gradient(1100px 520px at 8% -12%,rgba(61,220,255,0.10),transparent 60%),
- radial-gradient(900px 480px at 100% -5%,rgba(155,92,255,0.12),transparent 60%),
- radial-gradient(700px 400px at 50% 110%,rgba(46,229,157,0.05),transparent 60%),var(--bg0);}
+html,body,.stApp,[data-testid="stSidebar"],[data-testid="stMarkdownContainer"]{font-family:'Inter',sans-serif;color:var(--txt);}
+.stApp{background:var(--app-bg);color:var(--txt);}
 [data-testid="stHeader"]{background:transparent;}
 .block-container{padding-top:1.4rem;padding-bottom:2rem;max-width:100%;}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,rgba(14,18,34,0.97),rgba(7,9,18,0.99));border-right:1px solid var(--border);}
+[data-testid="stSidebar"]{background:var(--sb-bg);border-right:1px solid var(--border);}
 [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"]{background:var(--glass);border-radius:14px;}
-.sb-brand{display:flex;align-items:center;gap:10px;font-size:1.05rem;color:var(--txt);margin:2px 0 14px 0;}
+[data-testid="stSidebar"] label,[data-testid="stSidebar"] p,[data-testid="stSidebar"] span,
+[data-testid="stWidgetLabel"] p,[data-testid="stWidgetLabel"] span,
+.stTabs [data-baseweb="tab"] p,[data-testid="stCaptionContainer"] p{color:var(--txt) !important;}
+.sb-brand{display:flex;align-items:center;gap:10px;font-size:1.05rem;color:var(--txt-strong);margin:2px 0 10px 0;}
 .sb-brand .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
- font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;letter-spacing:-.04em;color:#fff;
+ font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;letter-spacing:-.04em;color:var(--txt-strong);
  background:linear-gradient(135deg,rgba(61,220,255,.25),rgba(155,92,255,.25));border:1px solid var(--border);}
 .sb-brand small{display:block;color:var(--muted);font-size:.72rem;font-weight:500;letter-spacing:.04em}
 .sb-sec{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 2px;}
-.side-title{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--txt);font-size:.9rem;margin-bottom:2px}
+.side-title{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--txt-strong);font-size:.9rem;margin-bottom:2px}
 .side-title i{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
 
 .hero{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;
  animation:fadein .7s ease both;}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .hero h1{font-size:1.85rem;font-weight:800;letter-spacing:-0.025em;margin:0;padding:0;line-height:1.2;
- background:linear-gradient(90deg,#ffffff 0%,#9fe8ff 35%,#b99bff 65%,#ffffff 100%);background-size:200% auto;
+ background:var(--hero-grad);background-size:200% auto;
  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 9s linear infinite;}
 @keyframes shine{to{background-position:200% center}}
 .hero p{color:var(--muted);margin:3px 0 0 0;font-size:.88rem}
 .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:.72rem;font-weight:600;
- color:#cfd8ff;background:rgba(255,255,255,0.04);border:1px solid var(--border);white-space:nowrap;letter-spacing:.01em}
-.chip b{color:#fff}
-.chip-status.live{background:rgba(46,229,157,0.08);border-color:rgba(46,229,157,0.3);color:#2ee59d}
-.chip-status.paused{background:rgba(255,255,255,0.035);border-color:rgba(255,255,255,0.1);color:var(--muted)}
-.chip-src{color:var(--cyan);border-color:rgba(61,220,255,0.22)}
+ color:var(--txt-sub);background:var(--chip-bg);border:1px solid var(--border);white-space:nowrap;letter-spacing:.01em}
+.chip b{color:var(--txt-strong)}
+.chip-status.live{background:rgba(46,229,157,0.10);border-color:rgba(46,229,157,0.35);color:var(--green)}
+.chip-status.paused{background:var(--chip-bg);border-color:var(--border);color:var(--muted)}
+.chip-src{color:var(--cyan);border-color:rgba(61,220,255,0.28)}
 .live-dot,.pause-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 .live-dot{background:var(--green);animation:pulse 1.6s infinite}
 .pause-dot{background:#6b7393}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,229,157,.7)}70%{box-shadow:0 0 0 8px rgba(46,229,157,0)}100%{box-shadow:0 0 0 0 rgba(46,229,157,0)}}
 
 [data-testid="stVerticalBlockBorderWrapper"]{background:var(--glass);border:1px solid var(--border);
- border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+ border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--card-shadow);}
 .player-hud{display:flex;flex-direction:column;justify-content:center;padding:2px 0 2px 4px}
-.player-hud .hud-time{font-family:'JetBrains Mono',monospace;font-size:2.05rem;font-weight:700;color:#fff;
- line-height:1.05;letter-spacing:.02em;text-shadow:0 0 20px rgba(61,220,255,.3)}
+.player-hud .hud-time{font-family:'JetBrains Mono',monospace;font-size:2.05rem;font-weight:700;color:var(--txt-strong);
+ line-height:1.05;letter-spacing:.02em;text-shadow:var(--hud-glow)}
 .player-hud .hud-sub{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.68rem;font-weight:700;
  text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .player-hud .hud-phase{color:var(--cyan)}
@@ -165,7 +244,7 @@ html,body,.stApp,[data-testid="stSidebar"],[data-testid="stMarkdownContainer"]{f
 .player-hud .hud-pct{color:var(--muted);font-weight:600}
 
 .slider-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:.74rem}
-.slider-meta .lbl{font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#cfd8ff}
+.slider-meta .lbl{font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-sub)}
 .slider-meta .cur{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:700;color:var(--cyan);margin-left:6px}
 .slider-meta .rng{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.02em}
 div[data-testid="stSlider"],div[data-testid="stSelectSlider"]{padding-top:0 !important;margin-top:0 !important}
@@ -177,38 +256,38 @@ div[data-testid="stSlider"],div[data-testid="stSelectSlider"]{padding-top:0 !imp
 .clock-top{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;font-weight:600;color:var(--muted);
  letter-spacing:.06em;text-transform:uppercase}
 .clock-top .state{display:inline-flex;align-items:center;gap:6px}
-.clock .time{font-family:'JetBrains Mono',monospace;font-size:2.15rem;font-weight:700;color:#fff;line-height:1.1;
- letter-spacing:.02em;text-shadow:0 0 22px rgba(61,220,255,.35)}
-.clock .bar{height:4px;border-radius:4px;background:rgba(255,255,255,.07);margin-top:6px;overflow:hidden}
+.clock .time{font-family:'JetBrains Mono',monospace;font-size:2.15rem;font-weight:700;color:var(--txt-strong);line-height:1.1;
+ letter-spacing:.02em;text-shadow:var(--hud-glow)}
+.clock .bar{height:4px;border-radius:4px;background:var(--border);margin-top:6px;overflow:hidden}
 .clock .bar div{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--violet))}
 
 .banner{display:flex;align-items:center;gap:14px;padding:12px 18px;margin:10px 0 14px 0;
- background:linear-gradient(90deg,rgba(46,229,157,.10),rgba(61,220,255,.06) 50%,rgba(155,92,255,.08));}
-.banner.neg{background:linear-gradient(90deg,rgba(255,69,96,.12),rgba(255,181,71,.06) 60%,rgba(155,92,255,.06));}
-.banner .big{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:#fff;white-space:nowrap}
-.banner .txt{color:#cfd8ff;font-size:.9rem}
-.banner .txt b{color:#fff}
+ background:linear-gradient(90deg,rgba(46,229,157,.12),rgba(61,220,255,.07) 50%,rgba(155,92,255,.09));}
+.banner.neg{background:linear-gradient(90deg,rgba(255,69,96,.12),rgba(255,181,71,.07) 60%,rgba(155,92,255,.07));}
+.banner .big{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--txt-strong);white-space:nowrap}
+.banner .txt{color:var(--txt-sub);font-size:.9rem}
+.banner .txt b{color:var(--txt-strong)}
 
 .scen-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;margin-bottom:10px;
  border-left:3px solid var(--accent);flex-wrap:wrap}
-.scen-head .ttl{font-weight:800;font-size:1.02rem;color:#fff;letter-spacing:-.01em}
+.scen-head .ttl{font-weight:800;font-size:1.02rem;color:var(--txt-strong);letter-spacing:-.01em}
 .scen-head .ttl span{color:var(--accent)}
 .scen-head .desc{color:var(--muted);font-size:.78rem;margin-top:1px}
 
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:9px;margin-bottom:10px}
 .kpi{padding:10px 12px 9px 14px;position:relative;overflow:hidden;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
-.kpi:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.kpi:hover{transform:translateY(-2px);border-color:var(--cyan);box-shadow:var(--card-shadow)}
 .kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.85}
 .kpi .label{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);white-space:nowrap;
  overflow:hidden;text-overflow:ellipsis}
-.kpi .value{font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;color:var(--txt);margin-top:2px;white-space:nowrap}
+.kpi .value{font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:700;color:var(--txt-strong);margin-top:2px;white-space:nowrap}
 .kpi .sub{font-size:.7rem;font-weight:600;color:var(--muted);margin-top:1px;white-space:nowrap}
 .kpi .sub.good{color:var(--green)} .kpi .sub.bad{color:var(--red)}
 
 div[data-testid="stDeckGlJsonChart"]{border-radius:18px;overflow:hidden;border:1px solid var(--border);
- box-shadow:0 22px 60px rgba(0,0,0,.5),0 0 0 1px rgba(61,220,255,.04),inset 0 0 80px rgba(61,220,255,.03)}
+ box-shadow:var(--deck-shadow)}
 
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:10px 16px;margin:12px 0 4px 0;font-size:.76rem;color:#cfd8ff}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:10px 16px;margin:12px 0 4px 0;font-size:.76rem;color:var(--txt-sub)}
 .legend .it{display:inline-flex;align-items:center;gap:7px}
 .legend .dot{width:10px;height:10px;border-radius:3px}
 .legend .ring{width:11px;height:11px;border-radius:50%;border:2px solid}
@@ -217,24 +296,84 @@ div[data-testid="stDeckGlJsonChart"]{border-radius:18px;overflow:hidden;border:1
 .legend .sep{width:1px;height:16px;background:var(--border)}
 
 .feed{display:flex;flex-direction:column;gap:6px}
-.feed .row{display:flex;gap:10px;align-items:center;padding:8px 12px;font-size:.8rem;color:#cfd8ff}
-.feed .t{font-family:'JetBrains Mono',monospace;color:#fff;font-weight:700;font-size:.78rem}
+.feed .row{display:flex;gap:10px;align-items:center;padding:8px 12px;font-size:.8rem;color:var(--txt-sub)}
+.feed .t{font-family:'JetBrains Mono',monospace;color:var(--txt-strong);font-weight:700;font-size:.78rem}
 .feed .badge{padding:2px 8px;border-radius:999px;font-weight:700;font-size:.68rem;color:#05070d}
 .feed .empty{color:var(--muted);font-size:.8rem;padding:10px 4px}
 
-.stButton>button{border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);
- transition:all .15s ease;min-height:2.5rem;color:#e6ecff !important}
-.stButton>button p{color:#e6ecff !important;font-family:'JetBrains Mono',monospace,sans-serif !important;
+.stButton button,button[data-testid="stBaseButton-secondary"]{
+ border-radius:10px !important;border:1px solid var(--input-border) !important;
+ background:var(--btn-bg) !important;background-color:var(--btn-bg) !important;
+ box-shadow:var(--btn-shadow) !important;transition:all .15s ease;min-height:2.5rem;
+ color:var(--txt-strong) !important}
+.stButton button p,.stButton button span,button[data-testid="stBaseButton-secondary"] p{
+ color:var(--txt-strong) !important;font-family:'JetBrains Mono',monospace,sans-serif !important;
  font-weight:700 !important;font-size:.95rem !important;letter-spacing:-.5px}
-.stButton>button:hover{border-color:rgba(61,220,255,.6);background:rgba(61,220,255,.09);transform:translateY(-1px)}
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#1fb6e0,#7b4dff);border:none;color:#fff !important;
- box-shadow:0 6px 20px rgba(61,160,255,.35)}
-.stButton>button[kind="primary"] p{color:#fff !important}
+.stButton button:hover,button[data-testid="stBaseButton-secondary"]:hover{
+ border-color:var(--cyan) !important;background:var(--btn-hover-bg) !important;
+ background-color:var(--btn-hover-bg) !important;transform:translateY(-1px)}
+.stButton button[kind="primary"],button[data-testid="stBaseButton-primary"]{
+ background:linear-gradient(135deg,#1fb6e0,#7b4dff) !important;border:none !important;
+ color:#fff !important;box-shadow:0 6px 20px rgba(61,160,255,.35) !important}
+.stButton button[kind="primary"] p,.stButton button[kind="primary"] span,
+button[data-testid="stBaseButton-primary"] p{color:#fff !important}
+
+[data-testid="stSelectbox"] div:has(> input),[data-testid="stSelectbox"] [data-baseweb="select"]>div{
+ background-color:var(--input-bg) !important;border-color:var(--input-border) !important;
+ color:var(--txt-strong) !important}
+[data-testid="stSelectbox"] div:has(> input[disabled]),
+[data-testid="stSelectbox"] div:has(> input[data-disabled]){
+ background-color:var(--input-bg-disabled) !important;border-color:var(--border) !important}
+[data-testid="stSelectbox"] input{
+ color:var(--txt-strong) !important;-webkit-text-fill-color:var(--txt-strong) !important}
+[data-testid="stSelectbox"] input[disabled],[data-testid="stSelectbox"] input[data-disabled]{
+ color:var(--muted) !important;-webkit-text-fill-color:var(--muted) !important;opacity:1 !important}
+[data-testid="stSelectbox"] button{color:var(--muted) !important;background:transparent !important}
+[data-testid="stSelectbox"] button svg{fill:currentColor !important}
+[data-testid="stSelectboxVirtualDropdown"],[data-baseweb="popover"],[data-baseweb="menu"],
+[data-testid="stTooltipContent"]{
+ background-color:var(--dropdown-bg) !important;border:1px solid var(--input-border) !important;
+ box-shadow:var(--card-shadow) !important;border-radius:10px !important;
+ color:var(--txt-strong) !important}
+[data-testid="stTooltipContent"] p,[data-testid="stTooltipContent"] span{
+ color:var(--txt-strong) !important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"]{
+ color:var(--txt-strong) !important;background:transparent !important}
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered] [data-item-hl],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused] [data-item-hl],
+[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover [data-item-hl]{
+ background-color:var(--hover-bg) !important;color:var(--txt-strong) !important}
+
+[data-testid="stRadioOption"]:not([data-selected])>div>div:first-child{
+ background-color:var(--input-bg) !important;border:2px solid var(--input-border-strong) !important}
+[data-testid="stRadioOption"]:not([data-selected])>div>div:first-child>div{
+ background-color:transparent !important}
+[data-testid="stRadioOption"][data-selected]>div>div:first-child{
+ background-color:#ff4b4b !important;border:2px solid #ff4b4b !important}
+[data-testid="stRadioOption"][data-selected]>div>div:first-child>div{
+ background-color:#ffffff !important}
+[data-testid="stRadioOption"] p,[data-testid="stRadioOption"] span{color:var(--txt-strong) !important}
+
+[data-testid="stCheckbox"] label:not([data-selected])>div:first-of-type{
+ background-color:var(--toggle-off-bg) !important}
+[data-testid="stCheckbox"] label[data-selected]>div:first-of-type{
+ background-color:#ff4b4b !important}
+[data-testid="stCheckbox"] label>div:first-of-type>div{
+ background-color:#ffffff !important;box-shadow:0 1px 3px rgba(0,0,0,.25) !important}
+[data-testid="stSliderThumbValue"] p,[data-testid="stSliderTickBar"] p{color:var(--muted) !important}
+
 .stTabs [data-baseweb="tab-list"]{gap:6px}
 .stTabs [data-baseweb="tab"]{border-radius:10px 10px 0 0;padding:6px 14px}
-.foot{color:#5d6688;font-size:.72rem;text-align:center;margin-top:18px}
-</style>
+.foot{color:var(--foot);font-size:.72rem;text-align:center;margin-top:18px}
 """
+
+
+def get_css(light: bool = False) -> str:
+    theme_vars = _LIGHT_VARS if light else _DARK_VARS
+    return f"<style>{theme_vars}{_BASE_CSS}</style>"
+
+
+CSS = get_css(False)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -502,6 +641,7 @@ def station_colors(ratio: np.ndarray, lo: float, hi: float) -> np.ndarray:
 # Mapa (PyDeck)
 # ──────────────────────────────────────────────────────────────────────────────
 def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.Deck:
+    light = bool(o.get("light", False))
     sdf = run["stations"]
     cap = sdf["capacity"].to_numpy(float)
     bikes = s["bikes"]
@@ -536,25 +676,28 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
             ))
     if o["boundary"]:
         ring = [[lon, lat] for lon, lat in MANHATTAN_POLYGON] + [list(MANHATTAN_POLYGON[0])]
+        bnd_rgb = [2, 132, 199] if light else [61, 220, 255]
         layers += [
             pdk.Layer("PolygonLayer", id="area", data=[{"polygon": ring}], get_polygon="polygon", filled=True,
-                      stroked=False, get_fill_color=[61, 220, 255, 9]),
+                      stroked=False, get_fill_color=[*bnd_rgb, 14 if light else 9]),
             pdk.Layer("PathLayer", id="area_glow", data=[{"path": ring}], get_path="path",
-                      get_color=[61, 220, 255, 38], width_min_pixels=8),
+                      get_color=[*bnd_rgb, 45 if light else 38], width_min_pixels=8),
             pdk.Layer("PathLayer", id="area_line", data=[{"path": ring}], get_path="path",
-                      get_color=[61, 220, 255, 170], width_min_pixels=1.4),
+                      get_color=[*bnd_rgb, 200 if light else 170], width_min_pixels=1.4),
         ]
     if o["stations"]:
+        hl_col = [15, 23, 42, 70] if light else [255, 255, 255, 90]
         layers.append(pdk.Layer(
             "ColumnLayer", id="stations", data=stations, get_position="[lon, lat]", get_elevation="elev",
             elevation_scale=1, radius=o["radius"], disk_resolution=14, extruded=True, get_fill_color="color",
-            pickable=True, auto_highlight=True, highlight_color=[255, 255, 255, 90],
+            pickable=True, auto_highlight=True, highlight_color=hl_col,
         ))
         if o["glass"]:  # rysowane po kolumnach, by półprzezroczystość nie zasłaniała wnętrza
+            glass_col = [30, 41, 59, 24] if light else [170, 195, 255, 20]
             layers.append(pdk.Layer(
                 "ColumnLayer", id="capacity", data=stations[["lon", "lat", "cap_elev"]], get_position="[lon, lat]",
                 get_elevation="cap_elev", elevation_scale=1, radius=o["radius"] * 1.18, disk_resolution=14,
-                extruded=True, get_fill_color=[170, 195, 255, 20],
+                extruded=True, get_fill_color=glass_col,
             ))
     if o["fails"]:
         idx = np.where((win_r + win_d) > 0)[0]
@@ -633,6 +776,8 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
             })
         if rows:
             vdf = pd.DataFrame(rows)
+            lbl_fg = [15, 23, 42, 245] if light else [255, 255, 255, 240]
+            lbl_bg = [255, 255, 255, 232] if light else [8, 12, 24, 215]
             layers += [
                 pdk.Layer("ScatterplotLayer", id="van_halo", data=vdf, get_position="[lon, lat]", get_radius="r",
                           radius_units=JsString("meters"), filled=True, stroked=True, get_fill_color="halo",
@@ -641,16 +786,17 @@ def build_deck(run: dict, s: dict, vans: list[dict], t: float, o: dict) -> pdk.D
                           elevation_scale=1, radius=16, disk_resolution=10, extruded=True, get_fill_color="color",
                           pickable=True, auto_highlight=True),
                 pdk.Layer("TextLayer", id="van_label", data=vdf, get_position="[lon, lat, z]", get_text="label",
-                          get_size=13, get_color=[255, 255, 255, 240], get_text_anchor=JsString("middle"),
+                          get_size=13, get_color=lbl_fg, get_text_anchor=JsString("middle"),
                           get_alignment_baseline=JsString("bottom"), font_family=JsString("'JetBrains Mono', monospace"),
-                          font_weight=700, background=True, get_background_color=[8, 12, 24, 215],
+                          font_weight=700, background=True, get_background_color=lbl_bg,
                           background_padding=[6, 3, 6, 3]),
             ]
 
     view = pdk.ViewState(latitude=VIEW_CENTER[0], longitude=VIEW_CENTER[1], zoom=o["zoom"], pitch=o["pitch"],
                          bearing=o["bearing"], min_zoom=10.5, max_zoom=17.5)
-    return pdk.Deck(layers=layers, initial_view_state=view, map_provider="carto", map_style=CARTO_DARK,
-                    tooltip=TOOLTIP, height=o["height"])
+    map_style = CARTO_LIGHT if light else CARTO_DARK
+    return pdk.Deck(layers=layers, initial_view_state=view, map_provider="carto", map_style=map_style,
+                    tooltip=build_tooltip(light), height=o["height"])
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -789,7 +935,7 @@ def legend_html(thr: tuple) -> str:
       <span class="it"><span class="ring" style="border-color:rgb{C_EMPTY}"></span>odrzucone wypożyczenia</span>
       <span class="it"><span class="ring" style="border-color:rgb{C_FULL}"></span>odrzucone zwroty</span>
       <span class="sep"></span>{vans}
-      <span class="sep"></span><span class="it" style="color:#8a94b8">wysokość kolumny = liczba rowerów · Shift/Ctrl + przeciągnij = obrót kamery</span>
+      <span class="sep"></span><span class="it" style="color:var(--muted)">wysokość kolumny = liczba rowerów · Shift/Ctrl + przeciągnij = obrót kamery</span>
     </div>""")
 
 
@@ -805,7 +951,7 @@ def van_feed_html(run: dict, t: float, limit: int = 8) -> str:
             f"<div class='row glass'><span class='t'>{fmt_hhmm(lg['t_end'] / 60)}</span>"
             f"<span class='badge' style='background:rgb{col}'>V{lg['van_id'] + 1}</span>"
             f"<span>{verb} <b>{lg['qty']}</b> rowerów · {html.escape(lg['to_name'])}"
-            f" <span style='color:#8a94b8'>(ładunek {lg['load']})</span></span></div>"
+            f" <span style='color:var(--muted)'>(ładunek {lg['load']})</span></span></div>"
         )
     return "<div class='feed'>" + "".join(rows) + "</div>"
 
@@ -813,28 +959,37 @@ def van_feed_html(run: dict, t: float, limit: int = 8) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 # Wykresy (Plotly)
 # ──────────────────────────────────────────────────────────────────────────────
-def _style_fig(fig: go.Figure, title: str, rng: tuple[int, int]) -> go.Figure:
+def _style_fig(fig: go.Figure, title: str, rng: tuple[int, int], light: bool = False) -> go.Figure:
     lo_h, hi_h = rng[0] / 60, rng[1] / 60
     step = 1 if hi_h - lo_h <= 8 else 2
     ticks = list(range(math.floor(lo_h), math.ceil(hi_h) + 1, step))
+    txt_col = "#334155" if light else "#c9d3f5"
+    ttl_col = "#0f172a" if light else "#e6ecff"
+    grid_x = "rgba(15,23,42,0.07)" if light else "rgba(255,255,255,0.05)"
+    grid_y = "rgba(15,23,42,0.08)" if light else "rgba(255,255,255,0.06)"
+    hover_lbl = (
+        {"bgcolor": "#ffffff", "bordercolor": "rgba(15,23,42,0.15)", "font": {"color": "#0f172a"}}
+        if light
+        else {"bgcolor": "#0d1224", "bordercolor": "rgba(255,255,255,0.15)"}
+    )
     fig.update_layout(
         height=300,
         margin={"l": 8, "r": 8, "t": 46, "b": 8},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"family": "Inter, sans-serif", "color": "#c9d3f5", "size": 12},
-        title={"text": title, "font": {"size": 14, "color": "#e6ecff"}, "x": 0.01, "y": 0.97},
+        font={"family": "Inter, sans-serif", "color": txt_col, "size": 12},
+        title={"text": title, "font": {"size": 14, "color": ttl_col}, "x": 0.01, "y": 0.97},
         legend={"orientation": "h", "y": 1.13, "x": 1, "xanchor": "right", "bgcolor": "rgba(0,0,0,0)", "font": {"size": 11}},
         hovermode="x unified",
-        hoverlabel={"bgcolor": "#0d1224", "bordercolor": "rgba(255,255,255,0.15)"},
+        hoverlabel=hover_lbl,
     )
     fig.update_xaxes(range=[lo_h, hi_h], tickvals=ticks, ticktext=[f"{h:02d}:00" for h in ticks],
-                     gridcolor="rgba(255,255,255,0.05)", zeroline=False, showline=False)
-    fig.update_yaxes(gridcolor="rgba(255,255,255,0.06)", zeroline=False, rangemode="tozero")
+                     gridcolor=grid_x, zeroline=False, showline=False)
+    fig.update_yaxes(gridcolor=grid_y, zeroline=False, rangemode="tozero")
     return fig
 
 
-def chart_unserved(sides: list[dict], t: float, rng: tuple[int, int]) -> go.Figure:
+def chart_unserved(sides: list[dict], t: float, rng: tuple[int, int], light: bool = False) -> go.Figure:
     fig = go.Figure()
     for sd in sides:
         run, acc = sd["run"], accent_of(sd["run"])
@@ -847,11 +1002,12 @@ def chart_unserved(sides: list[dict], t: float, rng: tuple[int, int]) -> go.Figu
         now = sd["s"]["kpi"]["fail_rent_cum"] + sd["s"]["kpi"]["fail_return_cum"]
         fig.add_trace(go.Scatter(x=[t / 3600], y=[now], mode="markers", showlegend=False, hoverinfo="skip",
                                  marker={"size": 11, "color": acc, "line": {"color": "#fff", "width": 2}}))
-    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
-    return _style_fig(fig, "Narastający nieobsłużony popyt (odrzucone wypożyczenia + zwroty)", rng)
+    vline_col = "rgba(15,23,42,0.35)" if light else "rgba(255,255,255,0.35)"
+    fig.add_vline(x=t / 3600, line={"color": vline_col, "width": 1, "dash": "dot"})
+    return _style_fig(fig, "Narastający nieobsłużony popyt (odrzucone wypożyczenia + zwroty)", rng, light=light)
 
 
-def chart_critical(sides: list[dict], t: float, thr: tuple, rng: tuple[int, int]) -> go.Figure:
+def chart_critical(sides: list[dict], t: float, thr: tuple, rng: tuple[int, int], light: bool = False) -> go.Figure:
     fig = go.Figure()
     for sd in sides:
         run, acc = sd["run"], accent_of(sd["run"])
@@ -862,8 +1018,9 @@ def chart_critical(sides: list[dict], t: float, thr: tuple, rng: tuple[int, int]
                                  line={"color": acc, "width": 2.4, "shape": "spline"}))
         fig.add_trace(go.Scatter(x=x, y=(ratio > thr[1]).sum(1), mode="lines", name=f"{s} · pełne",
                                  line={"color": acc, "width": 2, "dash": "dot", "shape": "spline"}))
-    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
-    return _style_fig(fig, f"Liczba stacji krytycznych (pusta < {thr[0]:.0%}, pełna > {thr[1]:.0%})", rng)
+    vline_col = "rgba(15,23,42,0.35)" if light else "rgba(255,255,255,0.35)"
+    fig.add_vline(x=t / 3600, line={"color": vline_col, "width": 1, "dash": "dot"})
+    return _style_fig(fig, f"Liczba stacji krytycznych (pusta < {thr[0]:.0%}, pełna > {thr[1]:.0%})", rng, light=light)
 
 
 def critical_table(sd: dict) -> pd.DataFrame:
@@ -908,6 +1065,7 @@ def sidebar() -> dict:
     <div class="sb-brand"><div class="logo">CB</div>
       <div><b>CitiBike DES Player</b><small>UI &amp; 3D Map · Streamlit + PyDeck</small></div></div>"""),
         unsafe_allow_html=True)
+    light = sb.toggle("Motyw jasny ☀️", value=False, key="light_mode")
     runs = discover_runs()
     if not runs:
         st.error("Brak przebiegów w `data/outputs/snapshots/` oraz `data/mock/`. Uruchom `scripts/make_mocks.py`.")
@@ -962,11 +1120,11 @@ def sidebar() -> dict:
     align = sb.toggle("Wyrównaj do siatki ulic (29°)", True, key="align")
 
     return {
-        "source": source, "mode": mode, "picks": picks, "range": (int(rng[0]), int(rng[1])), "speed": speed,
-        "interval": float(interval), "loop": loop,
-        "map": {**layers, "elev_mode": elev_mode, "elev_scale": elev_scale, "radius": radius, "thr": thr,
-                "pitch": pitch, "zoom": zoom, "bearing": GRID_ANGLE_DEG if align else 0.0,
-                "height": 600 if mode == "split" else 720},
+        "light": bool(light), "source": source, "mode": mode, "picks": picks,
+        "range": (int(rng[0]), int(rng[1])), "speed": speed, "interval": float(interval), "loop": loop,
+        "map": {**layers, "light": bool(light), "elev_mode": elev_mode, "elev_scale": elev_scale,
+                "radius": radius, "thr": thr, "pitch": pitch, "zoom": zoom,
+                "bearing": GRID_ANGLE_DEG if align else 0.0, "height": 600 if mode == "split" else 720},
     }
 
 
@@ -1046,6 +1204,7 @@ def player(cfg: dict, runs: list[dict]) -> None:
 
     # ── Mapy ──
     o = cfg["map"]
+    light = bool(cfg.get("light", False))
     deck_kw = {} if _ST_VER >= (1, 46) else {"use_container_width": True}
     if "height" in _params(st.pydeck_chart):
         deck_kw["height"] = o["height"]
@@ -1065,9 +1224,9 @@ def player(cfg: dict, runs: list[dict]) -> None:
     with tab1:
         g1, g2 = st.columns(2, gap="medium")
         with g1:
-            st.plotly_chart(chart_unserved(sides, t, cfg["range"]), config=pconf, key="ch_unserved")
+            st.plotly_chart(chart_unserved(sides, t, cfg["range"], light=light), config=pconf, key="ch_unserved")
         with g2:
-            st.plotly_chart(chart_critical(sides, t, o["thr"], cfg["range"]), config=pconf, key="ch_critical")
+            st.plotly_chart(chart_critical(sides, t, o["thr"], cfg["range"], light=light), config=pconf, key="ch_critical")
     with tab2:
         tcols = st.columns(len(sides), gap="medium")
         for k, (col, sd) in enumerate(zip(tcols, sides)):
@@ -1094,8 +1253,8 @@ def player(cfg: dict, runs: list[dict]) -> None:
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 def main() -> None:
-    st.markdown(CSS, unsafe_allow_html=True)
     cfg = sidebar()
+    st.markdown(get_css(cfg["light"]), unsafe_allow_html=True)
 
     runs = []
     for pick in cfg["picks"]:
@@ -1117,4 +1276,5 @@ def main() -> None:
                 "</div>", unsafe_allow_html=True)
 
 
-main()
+if __name__ == "__main__":
+    main()
