@@ -2,14 +2,14 @@
 
 Funkcje:
 - mapa 3D w Dark Mode (CARTO Dark Matter) z kolumnami stacji (wysokość = rowery, kolor = zapełnienie),
-- widok Split-Screen (np. Scenariusz A vs B w tej samej sekundzie symulacji) lub pojedyncza mapa,
+- widok Split-Screen (np. Scenariusz A vs C w tej samej sekundzie symulacji) lub pojedyncza mapa,
 - płynna animacja furgonetek po siatce ulic Manhattanu (TripsLayer + ArcLayer + beacony 3D),
 - suwak czasu z odtwarzaczem (play / pauza / skoki ±15 min), interpolacja między klatkami 15-min,
 - karty KPI, wykres narastającego nieobsłużonego popytu, ranking stacji krytycznych, dziennik vanów.
 
 Dane wejściowe zgodnie z `CONTRACTS.md` (sekcja 4 `snapshots_24h`):
 - `data/outputs/snapshots/{scenario}_n{vans}_s{seed}.json` (silnik DES), a w razie ich braku
-- `data/mock/mock_snapshots_24h_{A|B}.json` (mocki).
+- `data/mock/mock_snapshots_24h_{A|B|C}.json` (mocki).
 
 Uruchomienie (z katalogu głównego repozytorium):
     uv run streamlit run scripts/04_dashboard_app.py
@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from common.config import (  # noqa: E402
+from common.config import (
     GRID_ANGLE_DEG,
     MANHATTAN_POLYGON,
     MOCK,
@@ -46,7 +46,7 @@ from common.config import (  # noqa: E402
     PROCESSED,
     STATIONS_JSON,
 )
-from common.contracts import validate_snapshots, validate_stations  # noqa: E402
+from common.contracts import validate_snapshots, validate_stations
 
 st.set_page_config(
     page_title="Citi Bike NYC · Odtwarzacz symulacji DES — dolny Manhattan",
@@ -58,7 +58,7 @@ st.set_page_config(
 # Stałe
 # ──────────────────────────────────────────────────────────────────────────────
 SNAP_DIR = OUTPUTS / "snapshots"
-RUN_RE = re.compile(r"^(?P<scenario>[AB])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
+RUN_RE = re.compile(r"^(?P<scenario>[ABC])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
 DAY_MIN = 24 * 60
 SERVICE_GUESS_S = 300  # czas obsługi stacji po ostatnim odcinku (jak w make_mocks.SERVICE_S)
 MAX_SERVICE_S = 1800  # dłuższa przerwa między odcinkami = postój (stan bierzemy z klatek)
@@ -70,6 +70,7 @@ VIEW_CENTER = (40.7350, -73.9905)
 SCENARIOS = {
     "A": {"name": "Bazowy", "desc": "Brak furgonetek w dzień, nocny reset stacji", "accent": "#FFB547"},
     "B": {"name": "Reaktywny", "desc": "Alarm przy przekroczeniu progów zapełnienia", "accent": "#FF6FB5"},
+    "C": {"name": "Predykcyjny", "desc": "Wyprzedzająca relokacja wg prognozy popytu NHPP", "accent": "#3DDCFF"},
 }
 
 C_EMPTY = (255, 69, 96)
@@ -260,12 +261,12 @@ def _stretch(fn) -> dict:
 
 
 def fmt_hhmm(m) -> str:
-    h, mm = divmod(int(round(m)), 60)
+    h, mm = divmod(round(m), 60)
     return f"{h:02d}:{mm:02d}"
 
 
 def fmt_int(v) -> str:
-    return f"{int(round(float(v))):,}".replace(",", "\u2009")
+    return f"{round(float(v)):,}".replace(",", "\u2009")
 
 
 def hex_rgba(hex_color: str, alpha: float) -> str:
@@ -353,7 +354,7 @@ def _grid_route(lat1, lon1, lat2, lon2, t0, t1):
 
 
 @st.cache_data(show_spinner="Wczytywanie przebiegu symulacji…", max_entries=16)
-def load_run(path: str, source: str, mtime: float) -> dict:  # noqa: ARG001 (mtime = klucz cache)
+def load_run(path: str, source: str, mtime: float) -> dict:
     snap = validate_snapshots(path)
     meta = snap.meta
     st_path = _stations_path(meta.stations_file, source)
@@ -451,14 +452,16 @@ def van_states(run: dict, t: float, i: int, a: float) -> list[dict]:
     out = []
     frames = run["vans"]
     j = min(i + 1, len(frames) - 1)
+    cap_v = run["meta"]["van_capacity"]
     for v in range(run["meta"]["n_vans"]):
         state = None
         legs = run["legs_by_van"].get(v, [])
         for k, leg in enumerate(legs):
             if leg["t_start"] <= t < leg["t_end"]:
                 before = leg["load"] - leg["qty"] if leg["action"] == "pickup" else leg["load"] + leg["qty"]
+                load_driving = int(np.clip(before, 0, cap_v))
                 state = {"status": "driving", "lat": float(np.interp(t, leg["ts"], leg["lats"])),
-                         "lon": float(np.interp(t, leg["ts"], leg["lons"])), "load": max(int(before), 0),
+                         "lon": float(np.interp(t, leg["ts"], leg["lons"])), "load": load_driving,
                          "action": leg["action"], "leg": leg, "target": leg["to_name"]}
                 break
             if leg["t_end"] <= t:
@@ -679,7 +682,7 @@ def hero_html(sides: list[dict], playing: bool) -> str:
     </div>""")
 
 
-def clock_html(m: int, playing: bool) -> str:  # noqa: ARG001
+def clock_html(m: int) -> str:
     label = day_phase(m)
     pct = (m / DAY_MIN) * 100
     return _html(f"""
@@ -815,13 +818,20 @@ def van_feed_html(run: dict, t: float, limit: int = 8) -> str:
 def _style_fig(fig: go.Figure, title: str, rng: tuple[int, int]) -> go.Figure:
     lo_h, hi_h = rng[0] / 60, rng[1] / 60
     step = 1 if hi_h - lo_h <= 8 else 2
-    ticks = list(range(int(math.floor(lo_h)), int(math.ceil(hi_h)) + 1, step))
+    ticks = list(range(math.floor(lo_h), math.ceil(hi_h) + 1, step))
     fig.update_layout(
-        height=300, margin=dict(l=8, r=8, t=46, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", color="#c9d3f5", size=12),
-        title=dict(text=title, font=dict(size=14, color="#e6ecff"), x=0.01, y=0.97),
-        legend=dict(orientation="h", y=1.13, x=1, xanchor="right", bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
-        hovermode="x unified", hoverlabel=dict(bgcolor="#0d1224", bordercolor="rgba(255,255,255,0.15)"),
+        height=300,
+        margin={"l": 8, "r": 8, "t": 46, "b": 8},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"family": "Inter, sans-serif", "color": "#c9d3f5", "size": 12},
+        title={"text": title, "font": {"size": 14, "color": "#e6ecff"}, "x": 0.01, "y": 0.97},
+        legend={
+            "orientation": "h", "y": 1.13, "x": 1, "xanchor": "right",
+            "bgcolor": "rgba(0,0,0,0)", "font": {"size": 11},
+        },
+        hovermode="x unified",
+        hoverlabel={"bgcolor": "#0d1224", "bordercolor": "rgba(255,255,255,0.15)"},
     )
     fig.update_xaxes(range=[lo_h, hi_h], tickvals=ticks, ticktext=[f"{h:02d}:00" for h in ticks],
                      gridcolor="rgba(255,255,255,0.05)", zeroline=False, showline=False)
@@ -836,13 +846,16 @@ def chart_unserved(sides: list[dict], t: float, rng: tuple[int, int]) -> go.Figu
         k = run["kpi"]
         y = k["fail_rent_cum"] + k["fail_return_cum"]
         fig.add_trace(go.Scatter(
-            x=k["t"] / 3600, y=y, mode="lines", name=scen_label(run), line=dict(color=acc, width=2.6, shape="spline"),
+            x=k["t"] / 3600, y=y, mode="lines", name=scen_label(run),
+            line={"color": acc, "width": 2.6, "shape": "spline"},
             fill="tozeroy", fillcolor=hex_rgba(acc, 0.08), hovertemplate="%{y:,.0f}",
         ))
         now = sd["s"]["kpi"]["fail_rent_cum"] + sd["s"]["kpi"]["fail_return_cum"]
-        fig.add_trace(go.Scatter(x=[t / 3600], y=[now], mode="markers", showlegend=False, hoverinfo="skip",
-                                 marker=dict(size=11, color=acc, line=dict(color="#fff", width=2))))
-    fig.add_vline(x=t / 3600, line=dict(color="rgba(255,255,255,0.35)", width=1, dash="dot"))
+        fig.add_trace(go.Scatter(
+            x=[t / 3600], y=[now], mode="markers", showlegend=False, hoverinfo="skip",
+            marker={"size": 11, "color": acc, "line": {"color": "#fff", "width": 2}},
+        ))
+    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
     return _style_fig(fig, "Narastający nieobsłużony popyt (odrzucone wypożyczenia + zwroty)", rng)
 
 
@@ -853,11 +866,15 @@ def chart_critical(sides: list[dict], t: float, thr: tuple, rng: tuple[int, int]
         ratio = run["bikes"] / run["stations"]["capacity"].to_numpy(float)[None, :]
         x = run["t"] / 3600
         s = run["meta"]["scenario"]
-        fig.add_trace(go.Scatter(x=x, y=(ratio < thr[0]).sum(1), mode="lines", name=f"{s} · puste",
-                                 line=dict(color=acc, width=2.4, shape="spline")))
-        fig.add_trace(go.Scatter(x=x, y=(ratio > thr[1]).sum(1), mode="lines", name=f"{s} · pełne",
-                                 line=dict(color=acc, width=2, dash="dot", shape="spline")))
-    fig.add_vline(x=t / 3600, line=dict(color="rgba(255,255,255,0.35)", width=1, dash="dot"))
+        fig.add_trace(go.Scatter(
+            x=x, y=(ratio < thr[0]).sum(1), mode="lines", name=f"{s} · puste",
+            line={"color": acc, "width": 2.4, "shape": "spline"},
+        ))
+        fig.add_trace(go.Scatter(
+            x=x, y=(ratio > thr[1]).sum(1), mode="lines", name=f"{s} · pełne",
+            line={"color": acc, "width": 2, "dash": "dot", "shape": "spline"},
+        ))
+    fig.add_vline(x=t / 3600, line={"color": "rgba(255,255,255,0.35)", "width": 1, "dash": "dot"})
     return _style_fig(fig, f"Liczba stacji krytycznych (pusta < {thr[0]:.0%}, pełna > {thr[1]:.0%})", rng)
 
 
@@ -913,13 +930,16 @@ def sidebar() -> dict:
     source = sb.radio("Źródło danych", sources, horizontal=True, key="source",
                       format_func={"engine": "Silnik DES", "mock": "Dane mock"}.get)
     cands = [r for r in runs if r["source"] == source]
-    mode = sb.radio("Tryb widoku", ["single", "split"], horizontal=True, key="view_mode",
-                      format_func={"single": "Pojedyncza", "split": "Split-Screen"}.get)
+    mode = sb.radio("Tryb widoku", ["split", "single"], horizontal=True, key="view_mode",
+                      format_func={"split": "Split-Screen", "single": "Pojedyncza"}.get)
     if mode == "split":
-        picks = [_pick_run("L", "Lewa mapa", "#FFB547", cands, "A", source),
-                 _pick_run("R", "Prawa mapa", "#FF6FB5", cands, "B", source)]
+        right_default = "C" if any(r["scenario"] == "C" for r in cands) else "B"
+        picks = [
+            _pick_run("L", "Lewa mapa", "#FFB547", cands, "A", source),
+            _pick_run("R", "Prawa mapa", "#3DDCFF", cands, right_default, source),
+        ]
     else:
-        picks = [_pick_run("S", "Przebieg", "#FFB547", cands, "A", source)]
+        picks = [_pick_run("S", "Przebieg", "#3DDCFF", cands, "C", source)]
 
     sb.markdown("<div class='sb-sec'>Odtwarzanie</div>", unsafe_allow_html=True)
     rng = sb.select_slider("Zakres doby", options=list(range(0, DAY_MIN + 1, 15)), value=(360, 1320),
@@ -1009,7 +1029,7 @@ def player(cfg: dict, runs: list[dict]) -> None:
     with st.container(border=True):
         c_clock, c_btn, c_slider = st.columns([1.5, 2.3, 5.7], vertical_alignment="center", gap="medium")
         with c_clock:
-            st.markdown(clock_html(ss.t_min, ss.playing), unsafe_allow_html=True)
+            st.markdown(clock_html(ss.t_min), unsafe_allow_html=True)
         with c_btn:
             b = st.columns([1, 1, 1.25, 1, 1], gap="small")
             kw = _stretch(st.button)
@@ -1096,7 +1116,7 @@ def main() -> None:
     for pick in cfg["picks"]:
         try:
             runs.append(load_run(pick["path"], pick["source"], Path(pick["path"]).stat().st_mtime))
-        except Exception as exc:  # noqa: BLE001 — czytelny komunikat zamiast tracebacku w UI
+        except (OSError, ValueError, KeyError) as exc:
             st.error(f"Nie udało się wczytać `{Path(pick['path']).name}`: {exc}")
             st.stop()
 
