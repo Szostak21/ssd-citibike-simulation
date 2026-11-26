@@ -57,6 +57,11 @@ uv run pytest -v
 uv run ruff check src scripts tests
 ```
 
+### 5. Raport i dokumentacja wyników
+- [`reports/raport_citi_bike_nyc.md`](./reports/raport_citi_bike_nyc.md) — pełny raport końcowy (Rozdziały 1–7),
+- [`reports/hypotheses_h1_h6.md`](./reports/hypotheses_h1_h6.md) — tabela weryfikacji statystycznej hipotez H1–H6,
+- [`reports/wnioski_i_rekomendacje.md`](./reports/wnioski_i_rekomendacje.md) — wnioski końcowe i rekomendacja inżynierska.
+
 ---
 
 ## Zbieranie danych GBFS (GitHub Actions + Scheduler cron-job.org)
