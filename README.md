@@ -33,14 +33,23 @@ uv run python scripts/02_run_simulation.py --scenario A --seed 1 --day-type week
 | `--init-fill` | Ułamek $0.0 - 1.0$ | `0.5` | Początkowe zapełnienie stacji o godzinie 00:00 (np. `0.5` = 50% pojemności docków) |
 
 Wyniki symulacji zapisują się do:
-- `data/outputs/snapshots/{scenario}_n{n_vans}_s{seed}.json` – snapshoty stanu co 15 minut dla dashboardu,
+- `data/outputs/snapshots/{run_id}.json` (np. `A_n0_s1.json`, `C_n4_s1_wx-rain.json`) – snapshoty stanu co 15 minut dla dashboardu,
 - `data/outputs/metrics/metrics_runs.csv` oraz `metrics_hourly.csv` – zintegrowane wskaźniki KPI (globalne i godzinowe).
+
+Wielordzeniowe eksperymenty seryjne (CRN):
+```bash
+uv run python scripts/03_batch_experiments.py --help
+```
 
 ### 3. Interaktywny Dashboard (Streamlit)
 ```bash
 uv run streamlit run scripts/04_dashboard_app.py
 ```
-Aplikacja otwiera się w przeglądarce pod adresem `http://localhost:8501`. Zawiera wizualizację 2D/3D stacji na mapie Manhattanu, odtwarzacz osi czasu (co 15 min), wskaźniki KPI na żywo oraz porównywarkę wielu scenariuszy obok siebie.
+Aplikacja otwiera się w przeglądarce pod adresem `http://localhost:8501` i działa od razu po sklonowaniu (korzysta z `data/outputs/snapshots/`, a przy ich braku automatycznie z `data/mock/`). Domyślnie uruchamia tryb porównawczy **Split-Screen (`A` vs `C`)** z wizualizacją 3D, animacją furgonetek, wskaźnikami KPI (`Poziom obsługi`, efektywność `uratowanych / km`) oraz przełącznikiem motywu ciemny/jasny.
+
+Gotowe wideo awaryjne z dashboardu na prezentację (`1920×1102`, `30 fps`, `47 s`):
+- `reports/media/demo_dashboard_60s.mp4` (`H.264`, `7.4 MB` – PowerPoint / Keynote / Windows / macOS / Linux)
+- `reports/media/demo_dashboard_60s.webm` (`VP9`, `5.9 MB` – przeglądarki / Linux)
 
 ### 4. Testy i kontrola jakości
 ```bash

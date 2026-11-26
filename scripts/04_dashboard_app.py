@@ -58,7 +58,7 @@ st.set_page_config(
 # Stałe
 # ──────────────────────────────────────────────────────────────────────────────
 SNAP_DIR = OUTPUTS / "snapshots"
-RUN_RE = re.compile(r"^(?P<scenario>[ABC])_n(?P<n>\d+)_s(?P<seed>\d+)\.json$")
+RUN_RE = re.compile(r"^(?P<scenario>[ABC])_n(?P<n>\d+)_s(?P<seed>\d+)(?:_(?P<variant>.+))?\.json$")
 DAY_MIN = 24 * 60
 SERVICE_GUESS_S = 300  # czas obsługi stacji po ostatnim odcinku (jak w make_mocks.SERVICE_S)
 MAX_SERVICE_S = 1800  # dłuższa przerwa między odcinkami = postój (stan bierzemy z klatek)
@@ -440,6 +440,26 @@ def accent_of(run: dict) -> str:
     return SCENARIOS[run["meta"]["scenario"]]["accent"]
 
 
+def _variant_label(variant: str) -> str:
+    if not variant:
+        return "bazowy (roboczy, sucho)"
+    labels = []
+    for tok in variant.split("_"):
+        if tok == "wx-rain":
+            labels.append("deszcz")
+        elif tok == "dt-weekend":
+            labels.append("weekend")
+        elif tok.startswith("thr"):
+            labels.append(f"progi {tok[3:].replace('-', '/')}%")
+        elif tok.startswith("H") and tok[1:].isdigit():
+            labels.append(f"H={tok[1:]} min")
+        elif tok.startswith("K") and tok[1:].isdigit():
+            labels.append(f"K={tok[1:]}")
+        else:
+            labels.append(tok)
+    return ", ".join(labels)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Dane
 # ──────────────────────────────────────────────────────────────────────────────
@@ -451,8 +471,14 @@ def discover_runs() -> list[dict]:
         for p in sorted(SNAP_DIR.glob("*.json")):
             m = RUN_RE.match(p.name)
             if m and m["scenario"] in SCENARIOS:
-                runs.append({"source": "engine", "scenario": m["scenario"], "n_vans": int(m["n"]),
-                             "seed": int(m["seed"]), "path": str(p)})
+                runs.append({
+                    "source": "engine",
+                    "scenario": m["scenario"],
+                    "n_vans": int(m["n"]),
+                    "seed": int(m["seed"]),
+                    "variant": m["variant"] or "",
+                    "path": str(p),
+                })
     for p in sorted(MOCK.glob("mock_snapshots_24h_*.json")):
         try:
             meta = json.loads(p.read_text(encoding="utf-8"))["meta"]
@@ -460,8 +486,14 @@ def discover_runs() -> list[dict]:
             continue
         if meta.get("scenario") not in SCENARIOS:
             continue
-        runs.append({"source": "mock", "scenario": meta["scenario"], "n_vans": int(meta["n_vans"]),
-                     "seed": int(meta["seed"]), "path": str(p)})
+        runs.append({
+            "source": "mock",
+            "scenario": meta["scenario"],
+            "n_vans": int(meta["n_vans"]),
+            "seed": int(meta["seed"]),
+            "variant": "",
+            "path": str(p),
+        })
     return runs
 
 
@@ -845,12 +877,18 @@ def scen_head_html(run: dict) -> str:
     info = SCENARIOS[m["scenario"]]
     fleet = f"Flota: {m['n_vans']} × K={m['van_capacity']}" if m["n_vans"] else "Bez furgonetek"
     src = "mock" if run["source"] == "mock" else "silnik DES"
+    extra_chips = ""
+    params = m.get("params") or {}
+    if params.get("weather") == "rain":
+        extra_chips += "<span class='chip'>deszcz</span>"
+    if m.get("day_type") == "weekend":
+        extra_chips += "<span class='chip'>weekend</span>"
     return _html(f"""
     <div class="scen-head glass" style="--accent:{info['accent']}">
       <div><div class="ttl"><span>Scenariusz {m['scenario']}</span> · {info['name']}</div>
         <div class="desc">{info['desc']}</div></div>
       <div class="chips"><span class="chip">{fleet}</span><span class="chip">seed {m['seed']}</span>
-        <span class="chip">{src}</span></div>
+        {extra_chips}<span class="chip">{src}</span></div>
     </div>""")
 
 
@@ -865,6 +903,23 @@ def _delta(val: float, ref: float | None, ref_name: str | None, higher_better: b
     return f"{arrow} {abs(pct):.0%} vs {ref_name}", ("good" if good else "bad")
 
 
+def _service_level_pct(k: dict) -> float:
+    denom = k["rentals_cum"] + k["fail_rent_cum"] - k["walk_redirect_cum"]
+    if denom <= 0:
+        return 100.0
+    return min(100.0, 100.0 * k["rentals_cum"] / denom)
+
+
+def _delta_pp(val: float, ref: float | None, ref_name: str | None) -> tuple[str, str]:
+    if ref is None:
+        return "wypożyczenia", ""
+    diff = val - ref
+    if abs(diff) < 0.05:
+        return f"≈ jak {ref_name}", ""
+    arrow = "▲" if diff > 0 else "▼"
+    return f"{arrow} {abs(diff):.1f} pp vs {ref_name}", ("good" if diff > 0 else "bad")
+
+
 def kpi_html(run: dict, s: dict, vans: list[dict], thr: tuple, ref: dict | None = None) -> str:
     k = s["kpi"]
     cap = run["stations"]["capacity"].to_numpy(float)
@@ -876,9 +931,12 @@ def kpi_html(run: dict, s: dict, vans: list[dict], thr: tuple, ref: dict | None 
     if ref:
         rr = ref["s"]["bikes"] / ref["run"]["stations"]["capacity"].to_numpy(float)
         r_crit = int((rr < thr[0]).sum() + (rr > thr[1]).sum())
+    sl = _service_level_pct(k)
+    r_sl = _service_level_pct(rk) if rk else None
     n_vans = run["meta"]["n_vans"]
     on_road = sum(v["status"] in ("driving", "servicing") for v in vans)
     cards = [
+        ("Poziom obsługi", f"{sl:.1f}%", *_delta_pp(sl, r_sl, rname)),
         ("Wypożyczenia", fmt_int(k["rentals_cum"]),
          *(_delta(k["rentals_cum"], rk["rentals_cum"], rname, higher_better=True) if rk else ("narastająco", ""))),
         ("Odrzucone wypoż.", fmt_int(k["fail_rent_cum"]),
@@ -908,13 +966,17 @@ def banner_html(left: dict, right: dict, m: int) -> str:
     pct = diff / ul if ul > 0 else 0.0
     cls = "" if diff >= 0 else " neg"
     verb = "uniknął" if diff >= 0 else "wygenerował dodatkowo"
+    km = float(rk.get("van_km_cum", 0.0))
+    eff_txt = ""
+    if diff > 0 and km > 0.5:
+        eff_txt = f" · efektywność: <b>{diff / km:.1f}</b> uratowanych / km ({km:.1f} km floty)"
     return _html(f"""
     <div class="banner glass{cls}">
       <div class="big">{'−' if diff >= 0 else '+'}{fmt_int(abs(diff))}</div>
       <div class="txt">Do godziny <b>{fmt_hhmm(m)}</b> scenariusz <b style="color:{accent_of(right['run'])}">{rn}</b>
         {verb} <b>{fmt_int(abs(diff))}</b> nieobsłużonych klientów względem
         <b style="color:{accent_of(left['run'])}">{ln}</b> ({'−' if diff >= 0 else '+'}{abs(pct):.0%} nieobsłużonego popytu:
-        {fmt_int(ur)} vs {fmt_int(ul)}).</div>
+        {fmt_int(ur)} vs {fmt_int(ul)}{eff_txt}).</div>
     </div>""")
 
 
@@ -1056,7 +1118,14 @@ def _pick_run(side: str, title: str, accent: str, cands: list[dict], default_sce
         seeds = sorted({r["seed"] for r in pool})
         seed = st.selectbox("Seed (replikacja CRN)", seeds, key=f"{side}_seed_{source}_{scen}_{n}",
                             disabled=len(seeds) == 1)
-        return next(r for r in pool if r["seed"] == seed)
+        pool = [r for r in pool if r["seed"] == seed]
+        variants = sorted({r.get("variant", "") for r in pool})
+        if len(variants) > 1:
+            variant = st.selectbox("Wariant", variants, key=f"{side}_var_{source}_{scen}_{n}_{seed}",
+                                   format_func=_variant_label)
+        else:
+            variant = variants[0]
+        return next(r for r in pool if r.get("variant", "") == variant)
 
 
 def sidebar() -> dict:
@@ -1076,11 +1145,12 @@ def sidebar() -> dict:
     source = sb.radio("Źródło danych", sources, horizontal=True, key="source",
                       format_func={"engine": "Silnik DES", "mock": "Dane mock"}.get)
     cands = [r for r in runs if r["source"] == source]
-    mode = sb.radio("Tryb widoku", ["single", "split"], horizontal=True, key="view_mode",
-                      format_func={"single": "Pojedyncza", "split": "Split-Screen"}.get)
+    default_mode = 1 if len({r["scenario"] for r in cands}) >= 2 else 0
+    mode = sb.radio("Tryb widoku", ["single", "split"], index=default_mode, horizontal=True, key="view_mode",
+                    format_func={"single": "Pojedyncza", "split": "Split-Screen"}.get)
     if mode == "split":
         picks = [_pick_run("L", "Lewa mapa", "#FFB547", cands, "A", source),
-                 _pick_run("R", "Prawa mapa", "#FF6FB5", cands, "B", source)]
+                 _pick_run("R", "Prawa mapa", "#3DDCFF", cands, "C", source)]
     else:
         picks = [_pick_run("S", "Przebieg", "#FFB547", cands, "A", source)]
 
