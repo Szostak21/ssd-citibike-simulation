@@ -129,7 +129,7 @@ def run_single(
 
     snap_dir = OUTPUTS / "snapshots"
     snap_dir.mkdir(parents=True, exist_ok=True)
-    snap_path = snap_dir / f"{scenario}_n{eff_vans}_s{seed}.json"
+    snap_path = snap_dir / f"{res.run_row['run_id']}.json"
     contracts.write_json(res.snapshots, snap_path)
     contracts.validate_snapshots(snap_path, station_ids)
 
