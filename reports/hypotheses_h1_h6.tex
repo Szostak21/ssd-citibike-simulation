@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering
+\caption{Weryfikacja statystyczna hipotez badawczych H1--H6 (testy sparowane CRN, $\alpha = 0{,}05$).}
+\label{tab:hypotheses}
+\begin{tabular}{lllllll}
+\toprule
+Hipoteza & Metryka & Wynik A & Wynik B & Wynik C & $p$-value & Status \\
+\midrule
+H1 & fail_rent [klientów/dzień] & 8067.9 ± 211.1 & 5260.5 ± 138.0 & 3238.7 ± 98.3 & $<$ 0.0001 (t-test) & Potwierdzona \\
+H2 & fail_rent [klientów/dzień] & 8067.9 ± 211.1 & 5260.5 ± 138.0 & 3238.7 ± 98.3 & $<$ 0.0001 (t-test) & Potwierdzona \\
+H3 & saved_total_per_km [os./km] & — & 11.87 ± 0.39 & 23.88 ± 0.91 & $<$ 0.0001 (t-test) & Potwierdzona \\
+H4 & Δ service_rate_pct [pp] & 89.15 ± 0.28% & +1.00 pp vs +0.60 pp & +1.81 pp vs +0.43 pp & $<$ 0.0001 (t-test) & Potwierdzona \\
+H5 & service_rate_pct [%] & 89.15 ± 0.28% & 93.72 ± 0.15% (N=6) & 95.65 ± 0.12% (N=4) & $<$ 0.0001 (t-test) & Potwierdzona \\
+H6 & unavailability_min [stacjo-min] & 51067 ± 1325 & 33299 ± 876 & 20494 ± 588 & $<$ 0.0001 (t-test) & Potwierdzona \\
+\bottomrule
+\end{tabular}
+\end{table}
